@@ -1,0 +1,17 @@
+{
+  "name": "RVC-Project WebUI integrated package 2.3.260718 (NVIDIA, pre-RTX 50 series)",
+  "release_page": "https://github.com/RVC-Project/Retrieval-based-Voice-Conversion-WebUI/releases/tag/2.3.260718",
+  "license": "MIT",
+  "file": "RVC20260718Nvidia.7z",
+  "url": "https://huggingface.co/lj1995/VoiceConversionWebUI/resolve/5836e9ea8ad6b7852f906acfa440e65a36e72396/RVC20260718Nvidia.7z",
+  "hf_revision": "5836e9ea8ad6b7852f906acfa440e65a36e72396",
+  "size": 7799405386,
+  "sha256": "278cd7db9c9e86e45b506d70959297b0c56802d6d79d6d6481b2b6b0f925be86",
+  "install_dir": "engine",
+  "required_files": [
+    "go-realtime_gui.bat",
+    "realtime_gui.py",
+    "runtime/python.exe",
+    "configs/config.py"
+  ]
+}

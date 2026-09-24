@@ -1,0 +1,13 @@
+{
+  "label": "VCTK p249 - English female",
+  "voice": "vctk-p249",
+  "settings": {
+    "pth_path": "models/vctk-p249/Fp249.pth",
+    "index_path": "models/vctk-p249/added_IVF1104_Flat_nprobe_1_Fp249_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.0,
+    "rms_mix_rate": 0.0,
+    "f0method": "rmvpe"
+  }
+}

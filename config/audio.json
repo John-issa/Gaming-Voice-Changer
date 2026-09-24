@@ -1,0 +1,16 @@
+{
+  "_comment": "Machine-wide audio + engine timing. Device names are resolved by case-insensitive substring match within 'hostapi' (all substrings must match). Values under 'settings' use the RVC realtime GUI's own config.json keys.",
+  "hostapi": "Windows WASAPI",
+  "input_device_match": ["Audeze Maxwell", "Chat"],
+  "output_device_match": ["CABLE Input"],
+  "settings": {
+    "sg_wasapi_exclusive": false,
+    "sr_type": "sr_device",
+    "threhold": -45,
+    "block_time": 0.25,
+    "crossfade_length": 0.05,
+    "extra_time": 2.5,
+    "I_noise_reduce": false,
+    "O_noise_reduce": false
+  }
+}

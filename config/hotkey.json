@@ -1,0 +1,8 @@
+{
+  "_comment": "toggle flips converted voice (vc) <-> raw mic (im). method: 'registerhotkey' (default) or 'poll' (GetAsyncKeyState, use if the hotkey doesn't fire while Overwatch is focused).",
+  "toggle": "ctrl+alt+v",
+  "method": "registerhotkey",
+  "poll_interval_ms": 30,
+  "cue_vc": "C:\\Windows\\Media\\Speech On.wav",
+  "cue_im": "C:\\Windows\\Media\\Speech Off.wav"
+}

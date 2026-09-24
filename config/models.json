@@ -1,0 +1,39 @@
+{
+  "source": "https://huggingface.co/Nekochu/RVC-VCTK_Voice-sample",
+  "revision": "005c2f948ee9dafd7e3aa7f261b4c3a24beebeef",
+  "url_template": "https://huggingface.co/Nekochu/RVC-VCTK_Voice-sample/resolve/{revision}/{remote}",
+  "license": "Model card: Apache-2.0. Trained on the VCTK corpus (CSTR, University of Edinburgh), CC BY 4.0 - attribution required.",
+  "attribution": "Voices: Nekochu/RVC-VCTK_Voice-sample (Apache-2.0), trained on CSTR VCTK Corpus (CC BY 4.0), University of Edinburgh.",
+  "voices": [
+    {
+      "id": "vctk-p231",
+      "label": "VCTK p231 - English female",
+      "default": true,
+      "files": [
+        { "kind": "rvc-pth",   "remote": "F/p231/Fp231.pth", "local": "models/vctk-p231/Fp231.pth", "size": 55193241, "sha256": "26d3c122a6429a0a1925cb12098408b9d41967089e08098b95a7b4f593e2e372" },
+        { "kind": "rvc-index", "remote": "F/p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index", "local": "models/vctk-p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index", "size": 149879099, "sha256": "34434f07663341500d55790a5711c9a13d70fc4377ded83839cda5d164cf0d99" },
+        { "kind": "beatrice",  "remote": "F/p231/p231_beatrice-v2_330step.zip", "local": "models/vctk-p231/p231_beatrice-v2_330step.zip", "size": 18961558, "sha256": "7663080d7e459878880334cc23a868ccb0855ebd0fed01e68f85f5a7e5187b8d", "optional": true }
+      ]
+    },
+    {
+      "id": "vctk-p238",
+      "label": "VCTK p238 - English female",
+      "default": true,
+      "files": [
+        { "kind": "rvc-pth",   "remote": "F/p238/Fp238.pth", "local": "models/vctk-p238/Fp238.pth", "size": 55193241, "sha256": "4f058f4e4703f66ab37d0f728b5fcc2c035b8a7744189d062e86dddbc2f79b30" },
+        { "kind": "rvc-index", "remote": "F/p238/added_IVF1617_Flat_nprobe_1_Fp238_v2.index", "local": "models/vctk-p238/added_IVF1617_Flat_nprobe_1_Fp238_v2.index", "size": 199220699, "sha256": "3a774a7765bd0311bbc96dc97dea2c013a31b73ef06d512de9aa0878cdc27423" },
+        { "kind": "beatrice",  "remote": "F/p238/p238_beatrice-v2_510step.zip", "local": "models/vctk-p238/p238_beatrice-v2_510step.zip", "size": 19061173, "sha256": "dd938a4b7e66cfaf334caf3b5c82994e8ec04d07f0ec0d7c4c5a0c982ed263bc", "optional": true }
+      ]
+    },
+    {
+      "id": "vctk-p249",
+      "label": "VCTK p249 - English female",
+      "default": true,
+      "files": [
+        { "kind": "rvc-pth",   "remote": "F/p249/Fp249.pth", "local": "models/vctk-p249/Fp249.pth", "size": 55193241, "sha256": "869430e76789738cb637a4b0c91327e11414c29a6359d0c251d72ec976e45a1f" },
+        { "kind": "rvc-index", "remote": "F/p249/added_IVF1104_Flat_nprobe_1_Fp249_v2.index", "local": "models/vctk-p249/added_IVF1104_Flat_nprobe_1_Fp249_v2.index", "size": 136022179, "sha256": "0fbc772db9b828f38cb35c5362b0dd43d5dbe0e638edbce05b6873006809d380" },
+        { "kind": "beatrice",  "remote": "F/p249/p249_beatrice-v2_300step.zip", "local": "models/vctk-p249/p249_beatrice-v2_300step.zip", "size": 18946809, "sha256": "ce38b63464f41f1bf9baf921aa54466cc7f5899445927a41150e87a83b5502c9", "optional": true }
+      ]
+    }
+  ]
+}

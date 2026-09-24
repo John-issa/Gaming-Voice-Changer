@@ -1,0 +1,13 @@
+{
+  "label": "VCTK p231 - English female (default)",
+  "voice": "vctk-p231",
+  "settings": {
+    "pth_path": "models/vctk-p231/Fp231.pth",
+    "index_path": "models/vctk-p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.0,
+    "rms_mix_rate": 0.0,
+    "f0method": "rmvpe"
+  }
+}
