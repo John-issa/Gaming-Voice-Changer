@@ -1,0 +1,23 @@
+# Large downloaded runtime + voices (fetched by scripts/, never committed)
+/engine/
+/models/
+/downloads/
+/captures/
+
+*.7z
+*.pth
+*.index
+*.onnx
+*.wav
+*.flac
+*.mkv
+
+# Python / tooling
+__pycache__/
+*.pyc
+.venv/
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
