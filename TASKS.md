@@ -34,6 +34,8 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
   - When the user presses start, the GUI rewrites `configs/config.json` *without* `formant`. That's fine: our launcher re-merges the preset on every launch.
   - `sr_type` must be `"sr_device"` for WASAPI shared: 40k models + `sr_model` = sample-rate mismatch.
   - The threshold gate is only active when `threhold > -60`.
+  - `load()` wraps everything in a bare `try/except`. A missing `sr_type`, `sg_hostapi`, `sg_input_device` or `sg_output_device` makes it silently rewrite `config.json` with defaults, which drops the preset. The launcher must guarantee these keys and fail loudly otherwise. (Found by Worker-1.)
+  - The input and output noise-reduce checkboxes don't read `config.json` (no `default=`), so they're not configurable from our presets. Toggle them in the GUI if needed.
   - `RVC_CUDA_GRAPH=0` env var disables the CUDA Graph path; it is auto-enabled otherwise.
 - **Cue sounds:** `C:\Windows\Media\Speech On.wav` / `Speech Off.wav` exist.
 - **FFmpeg 9.0.2** is on PATH (winget).

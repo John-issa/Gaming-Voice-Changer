@@ -9,8 +9,6 @@
     "threhold": -45,
     "block_time": 0.25,
     "crossfade_length": 0.05,
-    "extra_time": 2.5,
-    "I_noise_reduce": false,
-    "O_noise_reduce": false
+    "extra_time": 2.5
   }
 }
