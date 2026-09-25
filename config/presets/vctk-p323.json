@@ -2,8 +2,8 @@
   "label": "VCTK p323 - English female",
   "voice": "vctk-p323",
   "settings": {
-    "pth_path": "models/vctk-p323/Fp323.pth",
-    "index_path": "models/vctk-p323/added_IVF1581_Flat_nprobe_1_Fp323_v2.index",
+    "pth_path": "models/vctk-p323/Fp323rmvpe.pth",
+    "index_path": "models/vctk-p323/added_IVF1581_Flat_nprobe_1_Fp323rmvpe_v2.index",
     "pitch": 10,
     "formant": 0.0,
     "index_rate": 0.5,

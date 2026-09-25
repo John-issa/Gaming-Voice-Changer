@@ -345,7 +345,7 @@ class LaunchTest(ScriptTest):
 
     def test_environment_is_restored_for_the_calling_session(self):
         write(os.path.join(self.repo, "engine", "runtime", "python.exe"), "")  # not runnable: Start-Process fails
-        for local in ("models/vctk-p231/Fp231.pth", "models/vctk-p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index"):
+        for local in ("models/vctk-p231/Fp231rmvpe.pth", "models/vctk-p231/added_IVF1216_Flat_nprobe_1_Fp231rmvpe_v2.index"):
             write(os.path.join(self.repo, *local.split("/")), b"")
         launch = os.path.join(self.repo, "scripts", "launch.ps1")
         code, out = self.ps_command(f"$before = $env:PATH; & '{launch}' -NoCudaGraph; "

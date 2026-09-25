@@ -2,8 +2,8 @@
   "label": "VCTK p238 - English female",
   "voice": "vctk-p238",
   "settings": {
-    "pth_path": "models/vctk-p238/Fp238.pth",
-    "index_path": "models/vctk-p238/added_IVF1617_Flat_nprobe_1_Fp238_v2.index",
+    "pth_path": "models/vctk-p238/Fp238rmvpe.pth",
+    "index_path": "models/vctk-p238/added_IVF1617_Flat_nprobe_1_Fp238rmvpe_v2.index",
     "pitch": 10,
     "formant": 0.0,
     "index_rate": 0.5,

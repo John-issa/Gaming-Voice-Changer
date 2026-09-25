@@ -62,7 +62,7 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
 | T3 | Docs: `README.md`, `CREDITS.md`, `docs/windows-audio.md`, `docs/overwatch.md`, `docs/tuning.md`, `docs/voices-and-licenses.md`, `docs/perf-testing.md` | Worker-1 | done (7 docs, 1045 lines; links/anchors checked; awaiting review) |
 | T4 | After the user approves downloads: run install + get-models, check the packaged `realtime_gui.py` against the facts above, smoke-test the launcher (list devices, GUI opens with the preset, hotkey flips vc/im) | Worker-1 | done (engine + 9 voice files SHA256-verified; anchors OK; smoke test passed on virtual devices, real Maxwell/CABLE in T5) |
 | T6 | Smoothness: find and fix the intermittent crackle/"robotic" spikes (suspects: rms_mix_rate 0 gain spikes, SOLA crossfade, overruns, CUDA Graph, f0); fix the GUI freeze when non-live sliders (crossfade/sample length/extra) are moved | Worker-1 | in progress (priority; T3 docs parked until the end) |
-| T7 | Optional: train a custom English female voice if no VCTK preset satisfies the user (plan Step 6) | Worker-1 | on hold (user decision after auditioning the 8 presets) |
+| T7 | Optional: train a custom English female voice if no VCTK preset satisfies the user (plan Step 6) | Worker-1 | in progress (user approved 2026-09-25, quality first: Expresso speaker, ~2-3 h data, TITAN-Medium 48k base, bundled WebUI trainer) |
 | T5 | In-game acceptance (plan Step 5) with the user: VB-CABLE install, Maxwell connected, Overwatch settings, FrameView runs, delay measurement | User + Worker-1 | blocked (user) |
 
 ### T1 — `vcgui/hotkey_launcher.py` (acceptance)

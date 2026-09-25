@@ -227,7 +227,7 @@ class BuildConfigTest(TempDirTest):
         self.assertEqual(cfg["sg_output_device"], CABLE_IN)
         for key in ("pth_path", "index_path"):
             self.assertTrue(os.path.isabs(cfg[key]) and os.path.isfile(cfg[key]), cfg[key])
-        self.assertTrue(cfg["pth_path"].endswith(os.path.join("models", "vctk-p231", "Fp231.pth")))
+        self.assertTrue(cfg["pth_path"].endswith(os.path.join("models", "vctk-p231", "Fp231rmvpe.pth")))
 
     def test_preset_overrides_audio_settings(self):
         preset_path = os.path.join(self.tmp, "config", "presets", "vctk-p238.json")
@@ -236,7 +236,7 @@ class BuildConfigTest(TempDirTest):
         write_json(preset_path, preset)
         cfg, _ = self.build("vctk-p238")
         self.assertEqual(cfg["block_time"], 0.4)
-        self.assertIn("Fp238.pth", cfg["pth_path"])
+        self.assertIn("Fp238rmvpe.pth", cfg["pth_path"])
 
     def test_corrupt_existing_config_is_ignored(self):
         with open(self.config_json, "w") as f:
@@ -286,7 +286,7 @@ class BuildConfigTest(TempDirTest):
             write_json(preset_path, preset)
 
     def test_missing_model_file(self):
-        os.remove(os.path.join(self.tmp, "models", "vctk-p231", "Fp231.pth"))
+        os.remove(os.path.join(self.tmp, "models", "vctk-p231", "Fp231rmvpe.pth"))
         with self.assertRaises(hl.LaunchError) as cm:
             self.build()
         self.assertIn("get-models", str(cm.exception))
@@ -937,7 +937,7 @@ class EndToEndTest(TempDirTest):
         self.assertEqual(os.path.normcase(report["cwd"]), os.path.normcase(self.engine))
         self.assertTrue(report["devices_ok"])
         self.assertEqual(report["config"]["sg_input_device"], MAXWELL_IN)
-        self.assertIn("Fp238.pth", report["config"]["pth_path"])
+        self.assertIn("Fp238rmvpe.pth", report["config"]["pth_path"])
         self.assertEqual(report["popup_event"], "__HOTKEY_TOGGLE__")   # popups untouched
         self.assertEqual(report["events"][:3], [["im", False, True, False],
                                                 ["vc", True, False, False],
@@ -981,7 +981,7 @@ class EndToEndTest(TempDirTest):
             self.assertIn(name, proc.stdout)
 
     def test_missing_voice_is_a_friendly_error(self):
-        os.remove(os.path.join(self.tmp, "models", "vctk-p249", "Fp249.pth"))
+        os.remove(os.path.join(self.tmp, "models", "vctk-p249", "Fp249rmvpe.pth"))
         proc = self.launch("--engine", self.engine, "--preset", "vctk-p249")
         self.assertEqual(proc.returncode, 2)
         self.assertIn("ERROR:", proc.stderr)

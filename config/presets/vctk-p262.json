@@ -2,8 +2,8 @@
   "label": "VCTK p262 - English female",
   "voice": "vctk-p262",
   "settings": {
-    "pth_path": "models/vctk-p262/Fp262.pth",
-    "index_path": "models/vctk-p262/added_IVF1305_Flat_nprobe_1_Fp262_v2.index",
+    "pth_path": "models/vctk-p262/Fp262rmvpe.pth",
+    "index_path": "models/vctk-p262/added_IVF1305_Flat_nprobe_1_Fp262rmvpe_v2.index",
     "pitch": 10,
     "formant": 0.0,
     "index_rate": 0.5,
