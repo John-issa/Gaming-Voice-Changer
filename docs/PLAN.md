@@ -125,7 +125,7 @@ docs/                      windows-audio.md, overwatch.md, tuning.md, voices-and
 - formant **0** (try +0.5…+1.5).
 - f0 **rmvpe**.
 - **index_rate 0** to start. Later test 0.3 for less male-timbre leakage if GPU/CPU headroom allows.
-- threshold ≈ **-45 dB** (gate).
+- threshold **-60 = gate off** (revised after the first live test). The GUI's gate zeroes each 10 ms slice below the threshold with no hold or release, so at -45 it chopped words on the Maxwell. Raise it only if noise between words gets converted, and only a little (about -55).
 - block_time **0.25**, crossfade **0.05**, extra_time **2.5**.
 - Noise reduction off.
 - WASAPI shared, output = CABLE Input.

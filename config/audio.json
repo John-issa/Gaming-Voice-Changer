@@ -6,7 +6,7 @@
   "settings": {
     "sg_wasapi_exclusive": false,
     "sr_type": "sr_device",
-    "threhold": -45,
+    "threhold": -60,
     "block_time": 0.25,
     "crossfade_length": 0.05,
     "extra_time": 2.5

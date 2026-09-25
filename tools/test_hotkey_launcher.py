@@ -212,13 +212,13 @@ class BuildConfigTest(TempDirTest):
         return hl.build_config(self.engine, preset, self.sd, repo=self.tmp)
 
     def test_merge_order_paths_and_devices(self):
-        write_json(self.config_json, {"pitch": 0, "threhold": -60, "sr_type": "sr_model",
+        write_json(self.config_json, {"pitch": 0, "threhold": -30, "sr_type": "sr_model",
                                       "sg_hostapi": "MME", "sg_input_device": "old", "keep_me": 7})
         cfg, preset = self.build()
         self.assertEqual(preset["voice"], "vctk-p231")
         self.assertEqual(cfg["pitch"], 10)                 # preset beats existing config
         self.assertEqual(cfg["formant"], 0.0)              # preset key the GUI never saves
-        self.assertEqual(cfg["threhold"], -45)             # audio.json beats existing config
+        self.assertEqual(cfg["threhold"], -60)             # audio.json beats existing config
         self.assertEqual(cfg["sr_type"], "sr_device")
         self.assertEqual(cfg["keep_me"], 7)                # unrelated existing keys survive
         self.assertEqual(cfg["sg_hostapi"], "Windows WASAPI")
