@@ -10,9 +10,28 @@
       "label": "VCTK p231 - English female",
       "default": true,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/p231/Fp231.pth", "local": "models/vctk-p231/Fp231.pth", "size": 55193241, "sha256": "26d3c122a6429a0a1925cb12098408b9d41967089e08098b95a7b4f593e2e372" },
-        { "kind": "rvc-index", "remote": "F/p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index", "local": "models/vctk-p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index", "size": 149879099, "sha256": "34434f07663341500d55790a5711c9a13d70fc4377ded83839cda5d164cf0d99" },
-        { "kind": "beatrice",  "remote": "F/p231/p231_beatrice-v2_330step.zip", "local": "models/vctk-p231/p231_beatrice-v2_330step.zip", "size": 18961558, "sha256": "7663080d7e459878880334cc23a868ccb0855ebd0fed01e68f85f5a7e5187b8d", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p231/Fp231.pth",
+          "local": "models/vctk-p231/Fp231.pth",
+          "size": 55193241,
+          "sha256": "26d3c122a6429a0a1925cb12098408b9d41967089e08098b95a7b4f593e2e372"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index",
+          "local": "models/vctk-p231/added_IVF1216_Flat_nprobe_1_Fp231_v2.index",
+          "size": 149879099,
+          "sha256": "34434f07663341500d55790a5711c9a13d70fc4377ded83839cda5d164cf0d99"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/p231/p231_beatrice-v2_330step.zip",
+          "local": "models/vctk-p231/p231_beatrice-v2_330step.zip",
+          "size": 18961558,
+          "sha256": "7663080d7e459878880334cc23a868ccb0855ebd0fed01e68f85f5a7e5187b8d",
+          "optional": true
+        }
       ]
     },
     {
@@ -20,9 +39,28 @@
       "label": "VCTK p238 - English female",
       "default": true,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/p238/Fp238.pth", "local": "models/vctk-p238/Fp238.pth", "size": 55193241, "sha256": "4f058f4e4703f66ab37d0f728b5fcc2c035b8a7744189d062e86dddbc2f79b30" },
-        { "kind": "rvc-index", "remote": "F/p238/added_IVF1617_Flat_nprobe_1_Fp238_v2.index", "local": "models/vctk-p238/added_IVF1617_Flat_nprobe_1_Fp238_v2.index", "size": 199220699, "sha256": "3a774a7765bd0311bbc96dc97dea2c013a31b73ef06d512de9aa0878cdc27423" },
-        { "kind": "beatrice",  "remote": "F/p238/p238_beatrice-v2_510step.zip", "local": "models/vctk-p238/p238_beatrice-v2_510step.zip", "size": 19061173, "sha256": "dd938a4b7e66cfaf334caf3b5c82994e8ec04d07f0ec0d7c4c5a0c982ed263bc", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p238/Fp238.pth",
+          "local": "models/vctk-p238/Fp238.pth",
+          "size": 55193241,
+          "sha256": "4f058f4e4703f66ab37d0f728b5fcc2c035b8a7744189d062e86dddbc2f79b30"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p238/added_IVF1617_Flat_nprobe_1_Fp238_v2.index",
+          "local": "models/vctk-p238/added_IVF1617_Flat_nprobe_1_Fp238_v2.index",
+          "size": 199220699,
+          "sha256": "3a774a7765bd0311bbc96dc97dea2c013a31b73ef06d512de9aa0878cdc27423"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/p238/p238_beatrice-v2_510step.zip",
+          "local": "models/vctk-p238/p238_beatrice-v2_510step.zip",
+          "size": 19061173,
+          "sha256": "dd938a4b7e66cfaf334caf3b5c82994e8ec04d07f0ec0d7c4c5a0c982ed263bc",
+          "optional": true
+        }
       ]
     },
     {
@@ -30,9 +68,28 @@
       "label": "VCTK p249 - English female",
       "default": true,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/p249/Fp249.pth", "local": "models/vctk-p249/Fp249.pth", "size": 55193241, "sha256": "869430e76789738cb637a4b0c91327e11414c29a6359d0c251d72ec976e45a1f" },
-        { "kind": "rvc-index", "remote": "F/p249/added_IVF1104_Flat_nprobe_1_Fp249_v2.index", "local": "models/vctk-p249/added_IVF1104_Flat_nprobe_1_Fp249_v2.index", "size": 136022179, "sha256": "0fbc772db9b828f38cb35c5362b0dd43d5dbe0e638edbce05b6873006809d380" },
-        { "kind": "beatrice",  "remote": "F/p249/p249_beatrice-v2_300step.zip", "local": "models/vctk-p249/p249_beatrice-v2_300step.zip", "size": 18946809, "sha256": "ce38b63464f41f1bf9baf921aa54466cc7f5899445927a41150e87a83b5502c9", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p249/Fp249.pth",
+          "local": "models/vctk-p249/Fp249.pth",
+          "size": 55193241,
+          "sha256": "869430e76789738cb637a4b0c91327e11414c29a6359d0c251d72ec976e45a1f"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p249/added_IVF1104_Flat_nprobe_1_Fp249_v2.index",
+          "local": "models/vctk-p249/added_IVF1104_Flat_nprobe_1_Fp249_v2.index",
+          "size": 136022179,
+          "sha256": "0fbc772db9b828f38cb35c5362b0dd43d5dbe0e638edbce05b6873006809d380"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/p249/p249_beatrice-v2_300step.zip",
+          "local": "models/vctk-p249/p249_beatrice-v2_300step.zip",
+          "size": 18946809,
+          "sha256": "ce38b63464f41f1bf9baf921aa54466cc7f5899445927a41150e87a83b5502c9",
+          "optional": true
+        }
       ]
     },
     {
@@ -40,9 +97,28 @@
       "label": "VCTK p262 - English female",
       "default": true,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/p262/Fp262.pth", "local": "models/vctk-p262/Fp262.pth", "size": 55193241, "sha256": "8cc9b233e12e632321b53d77e4c2a15c0dacd0992d58f30bac7e2dea67599f9b" },
-        { "kind": "rvc-index", "remote": "F/p262/added_IVF1305_Flat_nprobe_1_Fp262_v2.index", "local": "models/vctk-p262/added_IVF1305_Flat_nprobe_1_Fp262_v2.index", "size": 160788459, "sha256": "5b56a31f1664707eea83a52b81fdd6f5df142837f8ea6ddf76ba84b8b07072d8" },
-        { "kind": "beatrice",  "remote": "F/p262/p262_beatrice-v2_360step.zip", "local": "models/vctk-p262/p262_beatrice-v2_360step.zip", "size": 19068246, "sha256": "33788efe056406679fb213bb07a524c369d592e4331dc7e64e65831aab526c0d", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p262/Fp262.pth",
+          "local": "models/vctk-p262/Fp262.pth",
+          "size": 55193241,
+          "sha256": "8cc9b233e12e632321b53d77e4c2a15c0dacd0992d58f30bac7e2dea67599f9b"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p262/added_IVF1305_Flat_nprobe_1_Fp262_v2.index",
+          "local": "models/vctk-p262/added_IVF1305_Flat_nprobe_1_Fp262_v2.index",
+          "size": 160788459,
+          "sha256": "5b56a31f1664707eea83a52b81fdd6f5df142837f8ea6ddf76ba84b8b07072d8"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/p262/p262_beatrice-v2_360step.zip",
+          "local": "models/vctk-p262/p262_beatrice-v2_360step.zip",
+          "size": 19068246,
+          "sha256": "33788efe056406679fb213bb07a524c369d592e4331dc7e64e65831aab526c0d",
+          "optional": true
+        }
       ]
     },
     {
@@ -50,9 +126,28 @@
       "label": "VCTK p280 - English female",
       "default": true,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/p280/Fp280.pth", "local": "models/vctk-p280/Fp280.pth", "size": 55193241, "sha256": "bbbb0b7ae3e22d7f951ca67eec31a18bcceaba7a38578423b27fe152bba33956" },
-        { "kind": "rvc-index", "remote": "F/p280/added_IVF1400_Flat_nprobe_1_Fp280_v2.index", "local": "models/vctk-p280/added_IVF1400_Flat_nprobe_1_Fp280_v2.index", "size": 172532499, "sha256": "ed502a4473864a2b2712fb6a1a4a14158cd60233d8e4a49316a2c999f63d4f80" },
-        { "kind": "beatrice",  "remote": "F/p280/p280_beatrice-v2_450step.zip", "local": "models/vctk-p280/p280_beatrice-v2_450step.zip", "size": 18885607, "sha256": "f408adbab123c9224949874fa7a00005206e8bf6ae41f77a9ed0fad08fd49092", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p280/Fp280.pth",
+          "local": "models/vctk-p280/Fp280.pth",
+          "size": 55193241,
+          "sha256": "bbbb0b7ae3e22d7f951ca67eec31a18bcceaba7a38578423b27fe152bba33956"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p280/added_IVF1400_Flat_nprobe_1_Fp280_v2.index",
+          "local": "models/vctk-p280/added_IVF1400_Flat_nprobe_1_Fp280_v2.index",
+          "size": 172532499,
+          "sha256": "ed502a4473864a2b2712fb6a1a4a14158cd60233d8e4a49316a2c999f63d4f80"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/p280/p280_beatrice-v2_450step.zip",
+          "local": "models/vctk-p280/p280_beatrice-v2_450step.zip",
+          "size": 18885607,
+          "sha256": "f408adbab123c9224949874fa7a00005206e8bf6ae41f77a9ed0fad08fd49092",
+          "optional": true
+        }
       ]
     },
     {
@@ -60,9 +155,28 @@
       "label": "VCTK p323 - English female",
       "default": true,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/p323/Fp323.pth", "local": "models/vctk-p323/Fp323.pth", "size": 55193241, "sha256": "5edc1ae904788127fdb9da9c29611582e701a64c3011e51ab476df487eee51e9" },
-        { "kind": "rvc-index", "remote": "F/p323/added_IVF1581_Flat_nprobe_1_Fp323_v2.index", "local": "models/vctk-p323/added_IVF1581_Flat_nprobe_1_Fp323_v2.index", "size": 194859419, "sha256": "8290dbdbb0244b01303e57f4acdac6e7651a41427590b342e5a75f43cf24832d" },
-        { "kind": "beatrice",  "remote": "F/p323/p323_beatrice-v2_480step.zip", "local": "models/vctk-p323/p323_beatrice-v2_480step.zip", "size": 19242799, "sha256": "b6cfbd846d39931d61b907af64ce090a01f580812a14ef7d88fd19b045b4c092", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p323/Fp323.pth",
+          "local": "models/vctk-p323/Fp323.pth",
+          "size": 55193241,
+          "sha256": "5edc1ae904788127fdb9da9c29611582e701a64c3011e51ab476df487eee51e9"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p323/added_IVF1581_Flat_nprobe_1_Fp323_v2.index",
+          "local": "models/vctk-p323/added_IVF1581_Flat_nprobe_1_Fp323_v2.index",
+          "size": 194859419,
+          "sha256": "8290dbdbb0244b01303e57f4acdac6e7651a41427590b342e5a75f43cf24832d"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/p323/p323_beatrice-v2_480step.zip",
+          "local": "models/vctk-p323/p323_beatrice-v2_480step.zip",
+          "size": 19242799,
+          "sha256": "b6cfbd846d39931d61b907af64ce090a01f580812a14ef7d88fd19b045b4c092",
+          "optional": true
+        }
       ]
     },
     {
@@ -70,9 +184,28 @@
       "label": "VCTK p340 - English female",
       "default": true,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/p340/Fp340.pth", "local": "models/vctk-p340/Fp340.pth", "size": 55193241, "sha256": "45fcf915660ad3c549682ef2a24368f28ebdb0bea1278760862cf84f8bf76291" },
-        { "kind": "rvc-index", "remote": "F/p340/added_IVF1046_Flat_nprobe_1_Fp340_v2.index", "local": "models/vctk-p340/added_IVF1046_Flat_nprobe_1_Fp340_v2.index", "size": 128965899, "sha256": "344f1d4eaf743c8d490af3442399f541ff38743b56f6571d4f89d8ce22cedea0" },
-        { "kind": "beatrice",  "remote": "F/p340/p340_beatrice-v2_300step.zip", "local": "models/vctk-p340/p340_beatrice-v2_300step.zip", "size": 18956266, "sha256": "fa85e89ea159a67b5bede2cdfec67ec1f03c835309dce61d368bb4b388d1435f", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p340/Fp340.pth",
+          "local": "models/vctk-p340/Fp340.pth",
+          "size": 55193241,
+          "sha256": "45fcf915660ad3c549682ef2a24368f28ebdb0bea1278760862cf84f8bf76291"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p340/added_IVF1046_Flat_nprobe_1_Fp340_v2.index",
+          "local": "models/vctk-p340/added_IVF1046_Flat_nprobe_1_Fp340_v2.index",
+          "size": 128965899,
+          "sha256": "344f1d4eaf743c8d490af3442399f541ff38743b56f6571d4f89d8ce22cedea0"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/p340/p340_beatrice-v2_300step.zip",
+          "local": "models/vctk-p340/p340_beatrice-v2_300step.zip",
+          "size": 18956266,
+          "sha256": "fa85e89ea159a67b5bede2cdfec67ec1f03c835309dce61d368bb4b388d1435f",
+          "optional": true
+        }
       ]
     },
     {
@@ -80,9 +213,196 @@
       "label": "VCTK All_F - blend of every female speaker (1.3 GB index)",
       "default": false,
       "files": [
-        { "kind": "rvc-pth",   "remote": "F/All_F/F.pth", "local": "models/vctk-all-f/F.pth", "size": 55191277, "sha256": "eb178239c59dea86a0f78168baa386fa696bdd410a08c9f90ce0f559c6d25d25" },
-        { "kind": "rvc-index", "remote": "F/All_F/added_IVF10216_Flat_nprobe_1_F_v2.index", "local": "models/vctk-all-f/added_IVF10216_Flat_nprobe_1_F_v2.index", "size": 1287132139, "sha256": "605cf3957de25cea82885914b2231ac9b7a5689eef38cd4bff15d178cb23cd70" },
-        { "kind": "beatrice",  "remote": "F/All_F/All_F_beatrice-v2_combined_150epochs.zip", "local": "models/vctk-all-f/All_F_beatrice-v2_combined_150epochs.zip", "size": 18080865, "sha256": "6c3c8664936fda4d02db1de88e297988f6f94a9449a1521deaf76e661415785f", "optional": true }
+        {
+          "kind": "rvc-pth",
+          "remote": "F/All_F/F.pth",
+          "local": "models/vctk-all-f/F.pth",
+          "size": 55191277,
+          "sha256": "eb178239c59dea86a0f78168baa386fa696bdd410a08c9f90ce0f559c6d25d25"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/All_F/added_IVF10216_Flat_nprobe_1_F_v2.index",
+          "local": "models/vctk-all-f/added_IVF10216_Flat_nprobe_1_F_v2.index",
+          "size": 1287132139,
+          "sha256": "605cf3957de25cea82885914b2231ac9b7a5689eef38cd4bff15d178cb23cd70"
+        },
+        {
+          "kind": "beatrice",
+          "remote": "F/All_F/All_F_beatrice-v2_combined_150epochs.zip",
+          "local": "models/vctk-all-f/All_F_beatrice-v2_combined_150epochs.zip",
+          "size": 18080865,
+          "sha256": "6c3c8664936fda4d02db1de88e297988f6f94a9449a1521deaf76e661415785f",
+          "optional": true
+        }
+      ]
+    },
+    {
+      "id": "vctk-p231-rmvpe",
+      "label": "VCTK p231 - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p231/rmvpe/Fp231rmvpe.pth",
+          "local": "models/vctk-p231-rmvpe/Fp231rmvpe.pth",
+          "size": 55224656,
+          "sha256": "12f819e129c6e48779439e491b85593b8819d094f751c3515ea13be6bd8b5a59"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p231/rmvpe/added_IVF1216_Flat_nprobe_1_Fp231rmvpe_v2.index",
+          "local": "models/vctk-p231-rmvpe/added_IVF1216_Flat_nprobe_1_Fp231rmvpe_v2.index",
+          "size": 149879099,
+          "sha256": "14c3a6fb421ed0c77654bb9ed5778307ff0204d7b047b6bbe37922af42f601ab"
+        }
+      ]
+    },
+    {
+      "id": "vctk-p238-rmvpe",
+      "label": "VCTK p238 - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p238/rmvpe/Fp238rmvpe.pth",
+          "local": "models/vctk-p238-rmvpe/Fp238rmvpe.pth",
+          "size": 55224656,
+          "sha256": "a32d7a2311a6ce484a497197d3f749ed3ec08d7e748ba5e88a6c8dc191f3cffc"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p238/rmvpe/added_IVF1617_Flat_nprobe_1_Fp238rmvpe_v2.index",
+          "local": "models/vctk-p238-rmvpe/added_IVF1617_Flat_nprobe_1_Fp238rmvpe_v2.index",
+          "size": 199220699,
+          "sha256": "8be675ea57ea3059c8e0edf82034024259f375baadde7fb1c52f8451672f7592"
+        }
+      ]
+    },
+    {
+      "id": "vctk-p249-rmvpe",
+      "label": "VCTK p249 - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p249/rmvpe/Fp249rmvpe.pth",
+          "local": "models/vctk-p249-rmvpe/Fp249rmvpe.pth",
+          "size": 55224656,
+          "sha256": "3515820454b83d01aaecd5cacbccd02f289fe0b1a5d4c724e9e1007d3e0def8e"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p249/rmvpe/added_IVF1104_Flat_nprobe_1_Fp249rmvpe_v2.index",
+          "local": "models/vctk-p249-rmvpe/added_IVF1104_Flat_nprobe_1_Fp249rmvpe_v2.index",
+          "size": 136022179,
+          "sha256": "482d27424a9a24d2c94f88d907d39c8e54bfe4a2d486d7787286eb089f0de630"
+        }
+      ]
+    },
+    {
+      "id": "vctk-p262-rmvpe",
+      "label": "VCTK p262 - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p262/rmvpe/Fp262rmvpe.pth",
+          "local": "models/vctk-p262-rmvpe/Fp262rmvpe.pth",
+          "size": 55224656,
+          "sha256": "800c9b79095bdd3053c5972519359e6fb6d743feb241599133bca305d947cd62"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p262/rmvpe/added_IVF1305_Flat_nprobe_1_Fp262rmvpe_v2.index",
+          "local": "models/vctk-p262-rmvpe/added_IVF1305_Flat_nprobe_1_Fp262rmvpe_v2.index",
+          "size": 160788459,
+          "sha256": "d68b5de45a7767c868a9e152d70cb4b9e60ad42583d4a01527678da8f5bf27a5"
+        }
+      ]
+    },
+    {
+      "id": "vctk-p280-rmvpe",
+      "label": "VCTK p280 - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p280/rmvpe/Fp280rmvpe.pth",
+          "local": "models/vctk-p280-rmvpe/Fp280rmvpe.pth",
+          "size": 55224656,
+          "sha256": "f0d05ef15712877353c4db28e0884fd28589d6b1d57f029943588efc6177c288"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p280/rmvpe/added_IVF1400_Flat_nprobe_1_Fp280rmvpe_v2.index",
+          "local": "models/vctk-p280-rmvpe/added_IVF1400_Flat_nprobe_1_Fp280rmvpe_v2.index",
+          "size": 172532499,
+          "sha256": "46ffb9a75d95e0275f78c3217b2d41940c215077da2ded69218929983710e173"
+        }
+      ]
+    },
+    {
+      "id": "vctk-p323-rmvpe",
+      "label": "VCTK p323 - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p323/rmvpe/Fp323rmvpe.pth",
+          "local": "models/vctk-p323-rmvpe/Fp323rmvpe.pth",
+          "size": 55224656,
+          "sha256": "324bf927fe1b3c58dca453d3cbe8dbcef5e0c69b3681c9719d53207316e54105"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p323/rmvpe/added_IVF1581_Flat_nprobe_1_Fp323rmvpe_v2.index",
+          "local": "models/vctk-p323-rmvpe/added_IVF1581_Flat_nprobe_1_Fp323rmvpe_v2.index",
+          "size": 194859419,
+          "sha256": "bd49af5dc001806653681f44563a37783108ea590caed4edc9bb431a31557e27"
+        }
+      ]
+    },
+    {
+      "id": "vctk-p340-rmvpe",
+      "label": "VCTK p340 - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/p340/rmvpe/Fp340rmvpe.pth",
+          "local": "models/vctk-p340-rmvpe/Fp340rmvpe.pth",
+          "size": 55224656,
+          "sha256": "90e43587887e7f6b3155eff3ca0c74105137fb919f623ae2b1be82f190f6fec1"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/p340/rmvpe/added_IVF1046_Flat_nprobe_1_Fp340rmvpe_v2.index",
+          "local": "models/vctk-p340-rmvpe/added_IVF1046_Flat_nprobe_1_Fp340rmvpe_v2.index",
+          "size": 128965899,
+          "sha256": "33f75e0219eb20ecf8600e764c2f2d78e6a652118659d63516bf738cf4a49682"
+        }
+      ]
+    },
+    {
+      "id": "vctk-all-f-rmvpe",
+      "label": "VCTK All_F blend - rmvpe-trained build",
+      "default": false,
+      "files": [
+        {
+          "kind": "rvc-pth",
+          "remote": "F/All_F/rmvpe/All_Frmvpe.pth",
+          "local": "models/vctk-all-f-rmvpe/All_Frmvpe.pth",
+          "size": 55224656,
+          "sha256": "5e5ea6e998cf5ea3dddef479166ddfe13c04eccff40288a6fd0149a6f2d5478b"
+        },
+        {
+          "kind": "rvc-index",
+          "remote": "F/All_F/rmvpe/added_IVF10216_Flat_nprobe_1_All_Frmvpe_v2.index",
+          "local": "models/vctk-all-f-rmvpe/added_IVF10216_Flat_nprobe_1_All_Frmvpe_v2.index",
+          "size": 1287132139,
+          "sha256": "b8c222253f3e0b6d625a8b45caeded137c208de290fd1d993fe9ce33d0b2174c"
+        }
       ]
     }
   ]

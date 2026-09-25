@@ -1,0 +1,13 @@
+{
+  "label": "VCTK p238 - rmvpe-trained build",
+  "voice": "vctk-p238-rmvpe",
+  "settings": {
+    "pth_path": "models/vctk-p238-rmvpe/Fp238rmvpe.pth",
+    "index_path": "models/vctk-p238-rmvpe/added_IVF1617_Flat_nprobe_1_Fp238rmvpe_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.5,
+    "f0method": "rmvpe"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "label": "VCTK p231 - rmvpe-trained build",
+  "voice": "vctk-p231-rmvpe",
+  "settings": {
+    "pth_path": "models/vctk-p231-rmvpe/Fp231rmvpe.pth",
+    "index_path": "models/vctk-p231-rmvpe/added_IVF1216_Flat_nprobe_1_Fp231rmvpe_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.5,
+    "f0method": "rmvpe"
+  }
+}

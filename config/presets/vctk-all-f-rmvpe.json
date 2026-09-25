@@ -1,0 +1,13 @@
+{
+  "label": "VCTK All_F blend - rmvpe-trained build",
+  "voice": "vctk-all-f-rmvpe",
+  "settings": {
+    "pth_path": "models/vctk-all-f-rmvpe/All_Frmvpe.pth",
+    "index_path": "models/vctk-all-f-rmvpe/added_IVF10216_Flat_nprobe_1_All_Frmvpe_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.5,
+    "f0method": "rmvpe"
+  }
+}

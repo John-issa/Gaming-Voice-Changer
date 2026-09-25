@@ -1,0 +1,13 @@
+{
+  "label": "VCTK p340 - rmvpe-trained build",
+  "voice": "vctk-p340-rmvpe",
+  "settings": {
+    "pth_path": "models/vctk-p340-rmvpe/Fp340rmvpe.pth",
+    "index_path": "models/vctk-p340-rmvpe/added_IVF1046_Flat_nprobe_1_Fp340rmvpe_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.5,
+    "f0method": "rmvpe"
+  }
+}
