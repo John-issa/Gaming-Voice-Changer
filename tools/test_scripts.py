@@ -332,7 +332,9 @@ class LaunchTest(ScriptTest):
         self.assertIn("get-models.ps1 -Voice vctk-p238", out)
         code, out = self.ps("launch.ps1", "-Preset", "nope")
         self.assertEqual(code, 1, out)
-        self.assertIn("Available: vctk-p231, vctk-p238, vctk-p249", out)
+        available = re.search(r"Available: (.*)", out).group(1)
+        for name in sorted(n[:-5] for n in os.listdir(os.path.join(REPO, "config", "presets"))):
+            self.assertIn(name, available)
 
     def test_presets_listed_even_with_brackets_in_the_repo_path(self):
         repo = self.make_repo("br[1]")

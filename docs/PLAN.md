@@ -12,7 +12,7 @@ The repo `Gaming-Voice-Changer` is empty (no commits). It will hold setup script
 - Hotkey: voice changer on/off.
 - **HARD: no paid subscriptions and no accounts.** After the one-time free downloads, it must run fully offline.
 
-**Machine (verified):** RTX 4080 SUPER 16 GB, Ryzen 9 9950X, 61.6 GB RAM, Win 11 Pro 26200, FFmpeg 9.0.2 installed (winget). Existing Voicemod, Voice.ai and EaseUS virtual devices will not be used. VB-CABLE is not installed.
+**Machine (verified):** RTX 4080 SUPER 16 GB, Ryzen 9 9950X, 61.6 GB RAM, Win 11 Pro 26200, FFmpeg 9.0.2 installed (winget). Other voice changers' virtual devices are not used. VB-CABLE Pack45 is installed (it worked without a reboot).
 
 ## Engine decision: official RVC real-time GUI (primary), VCClient (benchmark fallback)
 Research (2026-09-24, adversarially verified) led to the official **RVC-Project integrated package `2.3.260718`** (2026-07-21, MIT, `go-realtime_gui.bat`) over VCClient:
@@ -53,7 +53,7 @@ config/presets/*.json      one per voice: RVC GUI config keys (pth_path, index_p
                            sg_hostapi, sg_input_device, sg_output_device, ...)
 config/hotkey.json         combo, method (registerhotkey | poll), cue sounds
 scripts/install-engine.ps1 resumable download → SHA256 check → extract → engine/
-scripts/get-models.ps1     download the manifest's voices → SHA256 check → models/ → CREDITS.md
+scripts/get-models.ps1     download the manifest's voices → SHA256 check → models/, print the attribution (CREDITS.md is maintained by hand)
 scripts/launch.ps1 + launch.bat -Preset <name>: merge preset into engine/configs/config.json,
                            run engine\runtime\python.exe vcgui\hotkey_launcher.py
 scripts/measure-delay.ps1  FFmpeg dshow capture of mic + CABLE Output → silencedetect onset diff
@@ -64,12 +64,12 @@ docs/                      windows-audio.md, overwatch.md, tuning.md, voices-and
 ## Steps
 
 ### 0. Baseline
-- Quit the Voicemod, Voice.ai and EaseUS background apps.
+- Quit any commercial voice changer's background apps.
 - In the Overwatch Practice Range, run the same route 3 times with fixed graphics settings. Capture with **NVIDIA FrameView** (free), or PresentMon 2.6 as the alternative.
 - Record avg FPS, **1% lows** and stutter.
 
 ### 1. Audio plumbing (manual, `docs/windows-audio.md`)
-- Install **VB-CABLE Pack45** (donationware; admin install plus reboot).
+- Install **VB-CABLE Pack45** (donationware; admin install; reboot only if the CABLE devices don't appear).
   - Fallback if it crackles: VAC Lite 4.71 (free for home use).
   - We deliberately don't reuse the Voice.ai cable: its driver is owned by another app's installer and updater, so an update or uninstall would silently break the chain.
 - Set **48 kHz** on:
@@ -102,7 +102,7 @@ docs/                      windows-audio.md, overwatch.md, tuning.md, voices-and
 **Default set: English, natural female, rights-cleared**
 - Source: **Nekochu/RVC-VCTK_Voice-sample** (Hugging Face).
   - Model card: Apache-2.0. The underlying VCTK corpus is CC BY 4.0, so attribution goes in `CREDITS.md`.
-  - These are RVC v2 models: 250 epochs, rmvpe, pitch-aware (55 MB .pth plus an `added_*_v2.index`).
+  - These are RVC v2 models: 250 epochs, pitch-aware (the model card says rmvpe, or harvest for some speakers) (55 MB .pth plus an `added_*_v2.index`).
 - Presets:
   - **p231** (default): `F/p231/Fp231.pth` plus `added_IVF1216_Flat_nprobe_1_Fp231_v2.index`
   - **p238**
@@ -151,7 +151,7 @@ Technique: a lighter "mixed" voice with forward resonance converts far better th
 ### 5. Overwatch setup, tuning loop, acceptance
 - **Overwatch settings:**
   - Voice Chat Devices = Default Devices (alternative: Comms, with CABLE Output as the default communication device).
-  - **Open Mic.** With push-to-talk, hold the key about 0.3 s past the end of speech, because there is no release delay and the converted tail would be clipped.
+  - **Open Mic.** With push-to-talk, hold the key past the end of speech for at least the measured delay (about 0.4 s at the starting values), because there is no release delay and the converted tail would be clipped.
   - **Frame-rate cap** (required for RVC while gaming).
   - Reflex on.
 - **Tuning loop, one step at a time:**
@@ -162,7 +162,7 @@ Technique: a lighter "mixed" voice with forward resonance converts far better th
   - **1% lows ≥ 120 FPS**
   - no recurring stutter
   - GUI inference time under ~70% of block_time during fights
-  - stable end-to-end voice delay **≤ ~300 ms**, measured with `measure-delay.ps1`: FFmpeg records the raw mic and CABLE Output together, you clap, and `silencedetect` onset times give the offset
+  - stable end-to-end voice delay **≤ ~300 ms**, measured with `measure-delay.ps1`: FFmpeg records the raw mic and CABLE Output together, you say one short, sharp "ta!", and `silencedetect` onset times give the offset
 
 ### Fallbacks (only if Step 5 acceptance fails)
 - **B: VCClient**, benchmarked with the same voice and the same Step 5 tests. Adopt it only if it passes.
@@ -175,9 +175,9 @@ Technique: a lighter "mixed" voice with forward resonance converts far better th
 
 ## Verification (end to end)
 1. `install-engine.ps1` and `get-models.ps1` verify every SHA256. The stock `go-realtime_gui.bat` opens.
-2. `launch.bat -Preset p231` opens the GUI with the preset loaded. Start conversion and confirm the voice via "Listen to this device".
+2. `launch.bat -Preset vctk-p231` opens the GUI with the preset loaded. Start conversion and confirm the voice via "Listen to this device".
 3. **Record 1 minute from CABLE Output** with FFmpeg. Check for clipping, dropouts, echo, and gate chatter.
 4. Hotkey on the desktop and then with Overwatch focused (fullscreen and borderless): the radio flips vc⇄im, the cue plays, and there is no stream restart. If it doesn't fire in-game, switch to `"poll"` and re-test.
-5. Switch presets (p238, p249) and confirm the voices change.
+5. Switch presets (`vctk-p238`, `vctk-p249`, ...) and confirm the voices change.
 6. **Offline test:** disable networking, reboot, then launch and convert. This proves there are no online, account or subscription dependencies.
 7. Run the Step 5 acceptance: 3 FrameView runs plus `measure-delay.ps1`. Record results in `docs/perf-testing.md`.
