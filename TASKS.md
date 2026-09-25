@@ -19,7 +19,15 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
   - Beatrice zips are `optional` (Plan C only).
 - **Engine launcher at tag 2.3.260718**
   - `go-realtime_gui.bat` does `cd` to the engine dir, prepends `runtime` to PATH, then runs `runtime\python.exe -I realtime_gui.py`.
-- **`realtime_gui.py` (tag 2.3.260718, 1022 lines) facts the add-on depends on**
+- **Packaged engine (verified in T4)**
+  - Runtime: Python 3.12.10, FreeSimpleGUI 5.1.0, sounddevice 0.5.5.
+  - The packaged `realtime_gui.py` is 999 lines. Its only difference from the GitHub tag is that the TorchGate noise-reduction path calls `self.tg(...)` directly instead of `run_cuda_graph`. Everything the add-on uses, including handler lines 519/521, is identical.
+  - Assets are bundled, so nothing is fetched at runtime:
+    - HuBERT in `assets/hubert_base/` (transformers format, loaded with `local_files_only=True`),
+    - `assets/rmvpe/rmvpe.pt`,
+    - FCPE inside `torchfcpe`.
+  - The shipped `configs/config.json` points at MME/VoiceMeeter devices; the launcher overrides every relevant key.
+- **`realtime_gui.py` facts the add-on depends on** (from tag 2.3.260718; still true in the packaged copy)
   - Everything, including `class GUI`, lives inside `if __name__ == "__main__":`. You can't import it; run it with `runpy.run_path(path, run_name="__main__")`, and cwd plus `sys.path[0]` must be the engine dir.
   - The window is `sg.Window("RVC - GUI", ...)` stored as `self.window`. Radio keys `"im"` (raw passthrough) and `"vc"` (converted) are in the group `"function"`.
   - `event_handler` line 519: `elif event in ["vc", "im"]: self.function = event`. Line 521: `elif event == "stop_vc" or event != "start_vc": self.stop_stream()`.
@@ -49,10 +57,10 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
 | # | Task | Owner | Status |
 |---|------|-------|--------|
 | T0 | Repo skeleton, pinned manifests (`config/*.json`), presets, this board, `docs/PLAN.md` | Orchestrator | done |
-| T1 | `vcgui/hotkey_launcher.py` + stub-based tests | Worker-1 | todo |
-| T2 | PowerShell scripts: `install-engine.ps1`, `get-models.ps1`, `launch.ps1`, root `launch.bat`, `list-devices` (flag or script), `measure-delay.ps1` | Worker-1 | todo |
-| T3 | Docs: `README.md`, `CREDITS.md`, `docs/windows-audio.md`, `docs/overwatch.md`, `docs/tuning.md`, `docs/voices-and-licenses.md`, `docs/perf-testing.md` | Worker-1 | todo |
-| T4 | After the user approves downloads: run install + get-models, check the packaged `realtime_gui.py` against the facts above, smoke-test the launcher (list devices, GUI opens with the preset, hotkey flips vc/im) | Worker-1 | approved 2026-09-24 (engine + 3 voices + Beatrice zips); engine download may start early |
+| T1 | `vcgui/hotkey_launcher.py` + stub-based tests | Worker-1 | done (47 stub tests pass; review fixes applied; real-engine smoke test passed) |
+| T2 | PowerShell scripts: `install-engine.ps1`, `get-models.ps1`, `launch.ps1`, root `launch.bat`, `list-devices` (flag or script), `measure-delay.ps1` | Worker-1 | in progress (scripts written; 25/25 scratch harness checks pass) |
+| T3 | Docs: `README.md`, `CREDITS.md`, `docs/windows-audio.md`, `docs/overwatch.md`, `docs/tuning.md`, `docs/voices-and-licenses.md`, `docs/perf-testing.md` | Worker-1 | in progress |
+| T4 | After the user approves downloads: run install + get-models, check the packaged `realtime_gui.py` against the facts above, smoke-test the launcher (list devices, GUI opens with the preset, hotkey flips vc/im) | Worker-1 | done (engine + 9 voice files SHA256-verified; anchors OK; smoke test passed on virtual devices, real Maxwell/CABLE in T5) |
 | T5 | In-game acceptance (plan Step 5) with the user: VB-CABLE install, Maxwell connected, Overwatch settings, FrameView runs, delay measurement | User + Worker-1 | blocked (user) |
 
 ### T1 — `vcgui/hotkey_launcher.py` (acceptance)
