@@ -11,13 +11,16 @@ The hotkey only listens; it never sends input to any window.
 """
 
 import argparse
+import atexit
 import ctypes
 import json
 import os
+import queue
 import re
 import runpy
 import sys
 import threading
+import time
 from ctypes import wintypes
 
 try:
@@ -28,6 +31,13 @@ except ImportError:  # only the cue sounds need it
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 GUI_TITLE = "RVC - GUI"
 TOGGLE_EVENT = "__HOTKEY_TOGGLE__"
+POLL_MS = 50  # the GUI's read() wakes this often to apply queued work (hotkey, audio-thread updates)
+RESTART_DELAY = 0.8  # s of quiet after a timing-slider change before conversion restarts
+# Events realtime_gui's handler applies live; every other event (except start_vc) stops the stream.
+LIVE_EVENTS = frozenset(("vc", "im", "threhold", "pitch", "formant", "index_rate", "rms_mix_rate",
+                         "pm", "rmvpe", "fcpe", "I_noise_reduce", "O_noise_reduce"))
+# Sliders that stop the stream; conversion restarts by itself once they settle, if it was running.
+RESTART_EVENTS = frozenset(("block_time", "crossfade_length", "extra_time"))
 DEFAULT_PRESET = "vctk-p231"
 
 # realtime_gui.py load() indexes these with data[...] inside a bare try/except; a missing
@@ -373,7 +383,6 @@ def start_hotkey(cfg, callback):
         raise LaunchError(f"config/hotkey.json: method must be 'registerhotkey' or 'poll', got {method!r}")
     if vk in NUMPAD_DIGITS and not user32().GetKeyState(VK_NUMLOCK) & 1:
         print(f"[hotkey] NumLock is off: {combo} only works while NumLock is on.")
-    user32()
     if method == "registerhotkey":
         listener = RegisteredHotkey(mods, vk, callback)
         listener.start()
@@ -390,6 +399,109 @@ def start_hotkey(cfg, callback):
     return listener
 
 
+# ---------------------------------------------------------------- console
+
+
+class ConsoleWriter:
+    """stdout/stderr that never block the caller: a daemon thread does the actual writing.
+
+    The engine prints two lines per audio block from the PortAudio callback. A console write can
+    block (QuickEdit selection, Pause, a slow console), which would stall the audio thread; here
+    only the writer thread waits. Optionally tees everything into a log file.
+    """
+
+    def __init__(self, stdout, stderr, log_path=None, maxsize=20000):
+        self.queue = queue.Queue(maxsize)
+        self.dropped = 0
+        self.log = open(log_path, "a", encoding="utf-8", errors="backslashreplace") if log_path else None
+        self.stdout = _QueuedStream(self, stdout)
+        self.stderr = _QueuedStream(self, stderr)
+        self.thread = threading.Thread(target=self._run, name="console-writer", daemon=True)
+        self.thread.start()
+
+    def put(self, target, text):
+        try:
+            self.queue.put_nowait((target, text))
+        except queue.Full:
+            self.dropped += 1
+
+    def _run(self):
+        while True:
+            item = self.queue.get()
+            if item is None:
+                return
+            target, text = item
+            for out in (target, self.log):
+                if out is not None:
+                    try:
+                        out.write(text)
+                        if self.queue.empty():
+                            out.flush()
+                    except Exception:
+                        pass
+
+    def close(self, timeout=2.0):
+        """Write what is queued (at exit), then stop the thread."""
+        try:
+            self.queue.put(None, timeout=timeout)
+        except queue.Full:
+            return
+        self.thread.join(timeout)
+        if self.log:
+            self.log.close()
+
+
+class _QueuedStream:
+    def __init__(self, writer, target):
+        self._writer, self._target = writer, target
+
+    def write(self, text):
+        self._writer.put(self._target, text)
+        return len(text)
+
+    def flush(self):
+        pass
+
+    def __getattr__(self, name):  # encoding, isatty, fileno, ...
+        return getattr(self._target, name)
+
+
+def install_console_writer(log_path=None):
+    writer = ConsoleWriter(sys.stdout, sys.stderr, log_path)
+    sys.stdout, sys.stderr = writer.stdout, writer.stderr
+    atexit.register(writer.close)
+    return writer
+
+
+ENABLE_QUICK_EDIT_MODE, ENABLE_EXTENDED_FLAGS = 0x0040, 0x0080
+
+
+def disable_quick_edit(kernel32=None):
+    """Clear QuickEdit on this console (restored at exit): a click into it can't freeze output.
+
+    Returns the original mode, or None when there is no console or nothing to change.
+    """
+    if kernel32 is None:
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.GetStdHandle.argtypes = (wintypes.DWORD,)
+        kernel32.GetStdHandle.restype = wintypes.HANDLE
+        kernel32.GetConsoleMode.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+        kernel32.GetConsoleMode.restype = wintypes.BOOL
+        kernel32.SetConsoleMode.argtypes = (wintypes.HANDLE, wintypes.DWORD)
+        kernel32.SetConsoleMode.restype = wintypes.BOOL
+    handle = kernel32.GetStdHandle(wintypes.DWORD(-10 & 0xFFFFFFFF))  # STD_INPUT_HANDLE
+    mode = wintypes.DWORD()
+    if not kernel32.GetConsoleMode(handle, ctypes.byref(mode)):
+        return None  # input isn't a console
+    if not mode.value & ENABLE_QUICK_EDIT_MODE:
+        return None
+    new = (mode.value | ENABLE_EXTENDED_FLAGS) & ~ENABLE_QUICK_EDIT_MODE
+    if not kernel32.SetConsoleMode(handle, new):
+        return None
+    atexit.register(kernel32.SetConsoleMode, handle, mode.value)
+    return mode.value
+
+
 # ---------------------------------------------------------------- GUI patch
 
 
@@ -403,67 +515,147 @@ def play_cue(path):
 
 
 class Toggle:
-    """Shared by the hotkey thread (fire) and the GUI thread (the patched Window.read)."""
+    """Hotkey presses, handed from the hotkey thread to the GUI thread without touching Tk."""
 
     def __init__(self, cue_vc="", cue_im=""):
         self.window = None
         self.cues = {"vc": cue_vc, "im": cue_im}
+        self._pending = 0
+        self._lock = threading.Lock()
 
-    def fire(self):
-        window = self.window
-        if window is None:
+    def fire(self):  # hotkey thread
+        if self.window is None:
             print("[hotkey] ignored: the RVC window is not open yet")
             return
-        queue = getattr(window, "thread_queue", None)
-        strvar = getattr(window, "thread_strvar", None)
-        if queue is None or strvar is None:
-            window.write_event_value(TOGGLE_EVENT, None)
-            return
-        # Window.write_event_value minus its tk.willdispatch(): forcing Tk's "dispatching" flag
-        # from this thread can deadlock the GUI if the main thread is waiting for the audio
-        # thread (stop_stream) at that moment. read() returns queued events first anyway.
-        queue.put((TOGGLE_EVENT, None))
-        try:
-            strvar.set("new item")  # wakes a read() that is waiting in mainloop
-        except RuntimeError:
-            pass  # main thread busy outside mainloop; its next read() picks the event up
+        with self._lock:
+            self._pending += 1
+
+    def take(self):  # GUI thread
+        with self._lock:
+            if not self._pending:
+                return False
+            self._pending -= 1
+            return True
 
 
-def patch_window_read(sg, toggle):
-    """Turn TOGGLE_EVENT into the stock 'vc'/'im' radio event; everything else passes through.
+class DeferredUpdates:
+    """Element updates made off the GUI thread are queued and applied by the GUI thread.
 
-    realtime_gui's handler stops the stream on any event it doesn't know, so the custom
-    event must never reach it. Popups (sg.popup) also call read(); only the main window counts.
+    realtime_gui's audio callback updates "Inference time (ms)" every block from the PortAudio
+    thread. A cross-thread Tk call waits for the GUI thread, so a busy GUI (slider drags, event
+    handling) stalls the audio, and stop_stream() - which waits for the callback - can hang ~1 s.
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._pending = {}
+
+    def wrap(self, cls):
+        original = cls.update
+        deferred = self
+
+        def update(element, *args, **kwargs):
+            if threading.current_thread() is threading.main_thread():
+                return original(element, *args, **kwargs)
+            with deferred._lock:
+                deferred._pending[id(element)] = (original, element, args, kwargs)  # latest wins
+
+        cls.update = update
+
+    def apply(self):
+        with self._lock:
+            items, self._pending = list(self._pending.values()), {}
+        for original, element, args, kwargs in items:
+            try:
+                original(element, *args, **kwargs)
+            except Exception:
+                pass
+
+
+class AutoRestart:
+    """Restart conversion after a timing slider (which stops the stream) settles, if it was running."""
+
+    def __init__(self, delay=RESTART_DELAY):
+        self.delay = delay
+        self.running = False
+        self.due = None
+
+    def observe(self, event, now):
+        if event == "start_vc":
+            self.running, self.due = True, None
+        elif event in LIVE_EVENTS:
+            pass
+        elif event in RESTART_EVENTS:
+            if self.running or self.due is not None:
+                self.due = now + self.delay  # every further slider event pushes it out
+            self.running = False
+        else:  # stop_vc, devices, sample-rate option, ...: the user decides
+            self.running, self.due = False, None
+
+    def ready(self, now):
+        if self.due is not None and now >= self.due:
+            self.running, self.due = True, None
+            return True
+        return False
+
+
+def flip(window, values, toggle):
+    """Select the other vc/im radio and return the stock radio event for it."""
+    try:
+        vc_on = bool(window["vc"].get())
+    except Exception:
+        vc_on = bool(values.get("vc"))
+    key = "im" if vc_on else "vc"
+    try:
+        window[key].update(value=True)  # sets the tk variable; no extra event is generated
+    except Exception as e:
+        print(f"[hotkey] could not update the {key} radio: {e!r}")
+    values = dict(values or {})
+    values.pop(TOGGLE_EVENT, None)
+    values["vc"], values["im"] = key == "vc", key == "im"
+    play_cue(toggle.cues[key])
+    print("[hotkey] voice changer ON (vc)" if key == "vc" else "[hotkey] voice changer OFF (im: raw mic)")
+    return key, values
+
+
+def patch_window(sg, toggle, clock=time.monotonic, poll_ms=POLL_MS, restart_delay=RESTART_DELAY):
+    """Patch FreeSimpleGUI so the stock GUI gets the hotkey, never blocks audio, and restarts itself.
+
+    For the "RVC - GUI" window, read() (called by realtime_gui without a timeout) becomes a loop of
+    short reads: in between it applies deferred element updates, turns hotkey presses into the stock
+    "vc"/"im" radio events, and after a timing-slider change sends "start_vc" once the slider has
+    settled. Timeouts never reach the stock handler, which would stop the stream on unknown events.
+    Popups (sg.popup) also call read(); only the main window is affected.
     """
     original = sg.Window.read
+    timeout_key = getattr(sg, "TIMEOUT_KEY", "__TIMEOUT__")
+    deferred = DeferredUpdates()
+    deferred.wrap(sg.Text)
+    restart = AutoRestart(restart_delay)
 
     def read(self, *args, **kwargs):
-        is_gui = getattr(self, "Title", None) == GUI_TITLE
-        if is_gui:
-            toggle.window = self  # before blocking, so a hotkey during this read is delivered
-        result = original(self, *args, **kwargs)
-        if not is_gui:
-            return result
-        event, values = result
-        if event is None:  # sg.WIN_CLOSED
-            toggle.window = None
-            return result
-        if event != TOGGLE_EVENT:
-            return result
-        try:
-            vc_on = bool(self["vc"].get())
-        except Exception:
-            vc_on = bool(values.get("vc"))
-        key = "im" if vc_on else "vc"
-        try:
-            self[key].update(value=True)  # sets the tk variable; no extra event is generated
-        except Exception as e:
-            print(f"[hotkey] could not update the {key} radio: {e!r}")
-        values.pop(TOGGLE_EVENT, None)
-        values["vc"], values["im"] = key == "vc", key == "im"
-        play_cue(toggle.cues[key])
-        print("[hotkey] voice changer ON (vc)" if key == "vc" else "[hotkey] voice changer OFF (im: raw mic)")
-        return key, values
+        if getattr(self, "Title", None) != GUI_TITLE:
+            return original(self, *args, **kwargs)
+        toggle.window = self
+        if args or kwargs.get("timeout") is not None:
+            return original(self, *args, **kwargs)
+        while True:
+            event, values = original(self, timeout=poll_ms)
+            deferred.apply()
+            if event is None:  # sg.WIN_CLOSED
+                toggle.window = None
+                return event, values
+            if event == TOGGLE_EVENT:  # posted with write_event_value by older callers
+                return flip(self, values, toggle)
+            if event == timeout_key:
+                if toggle.take():
+                    return flip(self, values, toggle)
+                if restart.ready(clock()):
+                    print("[launcher] restarting conversion with the new setting...")
+                    return "start_vc", values
+                continue
+            restart.observe(event, clock())
+            return event, values
 
     sg.Window.read = read
     return original
@@ -486,6 +678,7 @@ def main(argv=None):
     parser.add_argument("--preset", default=DEFAULT_PRESET, help="config/presets/<name>.json")
     parser.add_argument("--list-devices", action="store_true", help="print audio devices per host API")
     parser.add_argument("--list-presets", action="store_true", help="print the available presets")
+    parser.add_argument("--log", help="also append all console output (incl. per-block timings) to this file")
     args = parser.parse_args(argv)
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):  # under -I, redirected output is cp1252 whatever the env says
@@ -506,11 +699,13 @@ def main(argv=None):
         hotkey = load_json(os.path.join(REPO, "config", "hotkey.json"), "config/hotkey.json")
         import FreeSimpleGUI as sg
         toggle = Toggle(hotkey.get("cue_vc", ""), hotkey.get("cue_im", ""))
-        patch_window_read(sg, toggle)
+        patch_window(sg, toggle)
         start_hotkey(hotkey, toggle.fire)
     except LaunchError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
+    install_console_writer(os.path.abspath(args.log) if args.log else None)
+    disable_quick_edit()
     print(f"Preset : {args.preset} - {preset.get('label', '')}")
     print(f"Model  : {cfg['pth_path']}")
     print(f"Input  : {cfg['sg_input_device']}")

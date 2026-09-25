@@ -15,15 +15,21 @@
     Print the audio devices per host API, as the engine sees them, and exit.
 .PARAMETER ListPresets
     Print the available presets and exit.
+.PARAMETER Log
+    Also append everything the console shows (including the per-block "Inference time" lines)
+    to this file, for diagnosing crackles.
 .EXAMPLE
     launch.bat -Preset vctk-p238
+.EXAMPLE
+    launch.bat -Log captures\engine.log
 #>
 [CmdletBinding()]
 param(
     [string]$Preset = 'vctk-p231',
     [switch]$NoCudaGraph,
     [switch]$ListDevices,
-    [switch]$ListPresets
+    [switch]$ListPresets,
+    [string]$Log
 )
 
 . (Join-Path $PSScriptRoot 'common.ps1')
@@ -73,7 +79,13 @@ $savedCudaGraph = $env:RVC_CUDA_GRAPH
 try {
     $env:PATH = (Join-Path $engine 'runtime') + ';' + $env:PATH
     if ($NoCudaGraph) { $env:RVC_CUDA_GRAPH = '0' }
-    $code = Invoke-Console $python @('-I', $launcher, '--engine', $engine, '--preset', $Preset)
+    $launchArgs = @('-I', $launcher, '--engine', $engine, '--preset', $Preset)
+    if ($Log) {
+        if (-not [IO.Path]::IsPathRooted($Log)) { $Log = Join-Path (Get-Location).Path $Log }
+        New-Item -ItemType Directory -Force -Path (Split-Path -Parent $Log) | Out-Null
+        $launchArgs += @('--log', $Log)
+    }
+    $code = Invoke-Console $python $launchArgs
 } finally {
     $env:PATH = $savedPath
     $env:RVC_CUDA_GRAPH = $savedCudaGraph  # $null removes it again

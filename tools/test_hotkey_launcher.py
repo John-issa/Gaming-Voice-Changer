@@ -20,6 +20,7 @@ import sys
 import tempfile
 import textwrap
 import threading
+import time
 import types
 import unittest
 from unittest import mock
@@ -333,8 +334,12 @@ class BuildConfigTest(TempDirTest):
 # ---------------------------------------------------------------- Window.read patch
 
 
+TIMEOUT = "__TIMEOUT__"
+
+
 def stub_sg():
-    """A fresh FreeSimpleGUI stand-in whose Window.read pops scripted events."""
+    """A fresh FreeSimpleGUI stand-in. Window.read pops scripted events; when none are left, or
+    for a scripted TIMEOUT, it behaves like a real read(timeout=...) that timed out."""
 
     class Radio:
         def __init__(self, window, key):
@@ -348,6 +353,13 @@ def stub_sg():
             if value is True:
                 self.window.radio = self.key
 
+    class Text:
+        def __init__(self):
+            self.shown = []
+
+        def update(self, value=None):
+            self.shown.append(value)
+
     class Window:
         def __init__(self, title, events=()):
             self.Title = title
@@ -355,9 +367,12 @@ def stub_sg():
             self.radio = "vc"
             self.updates = []
             self.written = []
+            self.timeouts = []
+            self.texts = {}
 
         def read(self, timeout=None):
-            event = self.events.pop(0)
+            self.timeouts.append(timeout)
+            event = self.events.pop(0) if self.events else TIMEOUT
             if callable(event):
                 event = event(self)
             if event is None:
@@ -368,19 +383,31 @@ def stub_sg():
             return event, values
 
         def __getitem__(self, key):
-            return Radio(self, key)
+            if key in ("vc", "im"):
+                return Radio(self, key)
+            return self.texts.setdefault(key, Text())
 
         def write_event_value(self, key, value):
             self.written.append((key, value))
 
-    return types.SimpleNamespace(Window=Window)
+    return types.SimpleNamespace(Window=Window, Text=Text, TIMEOUT_KEY=TIMEOUT)
+
+
+class FakeClock:
+    def __init__(self):
+        self.now = 0.0
+
+    def __call__(self):
+        self.now += 0.05  # every read(timeout=50) takes one poll interval
+        return self.now
 
 
 class ReadPatchTest(unittest.TestCase):
     def setUp(self):
         self.sg = stub_sg()
         self.toggle = hl.Toggle("C:\\cue\\on.wav", "C:\\cue\\off.wav")
-        hl.patch_window_read(self.sg, self.toggle)
+        self.clock = FakeClock()
+        hl.patch_window(self.sg, self.toggle, clock=self.clock, restart_delay=0.8)
         self.sound = mock.Mock(SND_FILENAME=0x20000, SND_ASYNC=0x1, SND_NODEFAULT=0x2)
         patcher = mock.patch.object(hl, "winsound", self.sound)
         patcher.start()
@@ -391,17 +418,19 @@ class ReadPatchTest(unittest.TestCase):
             result = window.read()
         return result, out.getvalue()
 
-    def test_toggle_flips_vc_im_and_plays_cue(self):
-        window = self.sg.Window(hl.GUI_TITLE, [hl.TOGGLE_EVENT, hl.TOGGLE_EVENT])
+    def test_hotkey_flips_vc_im_and_plays_cue(self):
+        window = self.sg.Window(hl.GUI_TITLE, ["pitch"])
+        self.read(window)
+        self.toggle.fire()
         (event, values), out = self.read(window)
         self.assertEqual(event, "im")
         self.assertEqual((values["vc"], values["im"]), (False, True))
-        self.assertNotIn(hl.TOGGLE_EVENT, values)
         self.assertEqual(values["pitch"], 10.0)
         self.assertEqual(window.updates, [("im", True)])
         self.sound.PlaySound.assert_called_once_with("C:\\cue\\off.wav", 0x20000 | 0x1 | 0x2)
         self.assertIn("OFF", out)
 
+        self.toggle.fire()
         (event, values), out = self.read(window)
         self.assertEqual(event, "vc")
         self.assertEqual((values["vc"], values["im"]), (True, False))
@@ -409,22 +438,40 @@ class ReadPatchTest(unittest.TestCase):
         self.sound.PlaySound.assert_called_with("C:\\cue\\on.wav", 0x20000 | 0x1 | 0x2)
         self.assertIn("ON", out)
 
-    def test_other_events_pass_through_untouched(self):
-        window = self.sg.Window(hl.GUI_TITLE, ["pitch", "start_vc", "__TIMEOUT__"])
-        for expected in ("pitch", "start_vc", "__TIMEOUT__"):
-            (event, values), out = self.read(window)
+    def test_legacy_toggle_event_is_translated(self):
+        window = self.sg.Window(hl.GUI_TITLE, [hl.TOGGLE_EVENT])
+        (event, values), _ = self.read(window)
+        self.assertEqual(event, "im")
+        self.assertNotIn(hl.TOGGLE_EVENT, values)
+
+    def test_hotkey_never_touches_the_window_from_its_thread(self):
+        window = self.sg.Window(hl.GUI_TITLE, ["pitch"])
+        self.read(window)
+        worker = threading.Thread(target=self.toggle.fire)
+        worker.start()
+        worker.join()
+        self.assertEqual((window.written, window.updates), ([], []))  # only the GUI thread acts on it
+        (event, _), _ = self.read(window)
+        self.assertEqual(event, "im")
+
+    def test_timeouts_are_swallowed_other_events_pass_through(self):
+        window = self.sg.Window(hl.GUI_TITLE, [TIMEOUT, "pitch", TIMEOUT, TIMEOUT, "start_vc"])
+        for expected in ("pitch", "start_vc"):
+            (event, values), _ = self.read(window)
             self.assertEqual(event, expected)
             self.assertEqual(values, {"vc": True, "im": False, "pitch": 10.0})
         self.assertEqual(window.updates, [])
+        self.assertTrue(all(t == hl.POLL_MS for t in window.timeouts))
         self.sound.PlaySound.assert_not_called()
 
-    def test_popups_are_ignored(self):
+    def test_popups_and_explicit_timeouts_are_untouched(self):
         popup = self.sg.Window("", [hl.TOGGLE_EVENT])
         (event, values), _ = self.read(popup)
         self.assertEqual(event, hl.TOGGLE_EVENT)
         self.assertIn(hl.TOGGLE_EVENT, values)
-        self.assertEqual(popup.updates, [])
         self.assertIsNone(self.toggle.window)
+        window = self.sg.Window(hl.GUI_TITLE, [TIMEOUT])
+        self.assertEqual(window.read(timeout=10)[0], TIMEOUT)  # a caller's own timeout is respected
 
     def test_window_captured_before_first_read_returns(self):
         seen = []
@@ -440,34 +487,130 @@ class ReadPatchTest(unittest.TestCase):
         self.assertIsNone(event)
         self.assertIsNone(self.toggle.window)
 
-    def test_fire_posts_event_or_ignores_when_no_window(self):
+    def test_fire_without_window_is_ignored(self):
         with contextlib.redirect_stdout(io.StringIO()) as out:
             self.toggle.fire()
         self.assertIn("not open", out.getvalue())
-        window = self.sg.Window(hl.GUI_TITLE, ["pitch"])
-        self.read(window)
-        self.toggle.fire()
-        self.assertEqual(window.written, [(hl.TOGGLE_EVENT, None)])
+        self.assertFalse(self.toggle.take())
 
-    def test_fire_queues_without_willdispatch(self):
-        # Real FreeSimpleGUI windows have thread_queue/thread_strvar; fire() must not go through
-        # write_event_value, whose tk.willdispatch() can deadlock a busy GUI.
-        window = self.sg.Window(hl.GUI_TITLE, ["pitch"])
-        window.thread_queue = queue.Queue()
-        window.thread_strvar = mock.Mock()
-        self.read(window)
-        self.toggle.fire()
-        self.assertEqual(window.thread_queue.get_nowait(), (hl.TOGGLE_EVENT, None))
-        window.thread_strvar.set.assert_called_once_with("new item")
-        self.assertEqual(window.written, [])
-        # Main thread outside mainloop: tkinter raises; the event stays queued for the next read().
-        window.thread_strvar.set.side_effect = RuntimeError("main thread is not in main loop")
-        self.toggle.fire()
-        self.assertEqual(window.thread_queue.get_nowait(), (hl.TOGGLE_EVENT, None))
+    def test_text_updates_from_other_threads_are_applied_by_the_gui_thread(self):
+        window = self.sg.Window(hl.GUI_TITLE, ["pitch", TIMEOUT, "stop_vc"])
+        infer = window["infer_time"]
+        infer.update(1)  # GUI thread: immediate
+        self.assertEqual(infer.shown, [1])
+
+        def audio_callback():
+            for ms in (110, 120, 130):
+                window["infer_time"].update(ms)
+
+        worker = threading.Thread(target=audio_callback)
+        worker.start()
+        worker.join()
+        self.assertEqual(infer.shown, [1])  # nothing touched Tk from the audio thread
+        self.read(window)  # the GUI thread's read loop applies them; only the latest matters
+        self.assertEqual(infer.shown, [1, 130])
+
+    def test_auto_restart_after_timing_slider_settles(self):
+        window = self.sg.Window(hl.GUI_TITLE, ["start_vc", "crossfade_length", "crossfade_length"])
+        for expected in ("start_vc", "crossfade_length", "crossfade_length"):
+            self.assertEqual(self.read(window)[0][0], expected)  # passed through: the stock GUI stops
+        before = self.clock.now
+        (event, values), out = self.read(window)  # nothing else happens: times out until due
+        self.assertEqual(event, "start_vc")
+        self.assertIn("pitch", values)
+        self.assertGreaterEqual(self.clock.now - before, 0.8)
+        self.assertIn("restarting conversion", out)
+        window.events = ["pitch", "stop_vc"]  # and it doesn't repeat
+        self.assertEqual([self.read(window)[0][0] for _ in range(2)], ["pitch", "stop_vc"])
+
+    def test_no_auto_restart_unless_running_or_after_stop(self):
+        for script in (["crossfade_length", "pitch"],                       # never started
+                       ["start_vc", "block_time", "stop_vc", "pitch"],      # stopped meanwhile
+                       ["start_vc", "block_time", "sg_input_device", "pitch"],  # device change: user decides
+                       ["start_vc", "stop_vc", "extra_time", "pitch"]):     # slider after a stop
+            window = self.sg.Window(hl.GUI_TITLE, list(script) + [TIMEOUT] * 40 + ["done"])
+            seen = [self.read(window)[0][0] for _ in range(len(script) + 1)]
+            with self.subTest(script=script):
+                self.assertEqual(seen, script + ["done"])
 
     def test_empty_cue_is_silent(self):
         hl.play_cue("")
         self.sound.PlaySound.assert_not_called()
+
+
+class AutoRestartTest(unittest.TestCase):
+    def test_debounce_restarts_once(self):
+        r = hl.AutoRestart(delay=1.0)
+        r.observe("start_vc", 0.0)
+        r.observe("block_time", 1.0)
+        r.observe("block_time", 1.5)  # still dragging: pushes the restart out
+        self.assertFalse(r.ready(2.4))
+        self.assertTrue(r.ready(2.5))
+        self.assertFalse(r.ready(10.0))
+        r.observe("pitch", 11.0)  # live events don't change anything
+        self.assertTrue(r.running)
+
+
+class ConsoleWriterTest(unittest.TestCase):
+    def test_writes_never_block_and_keep_order(self):
+        release = threading.Event()
+
+        class SlowConsole(io.StringIO):
+            def write(self, text):
+                release.wait(5)  # like a console frozen by QuickEdit selection
+                return super().write(text)
+
+        out, err = SlowConsole(), io.StringIO()
+        with tempfile.TemporaryDirectory() as tmp:
+            log = os.path.join(tmp, "run.log")
+            writer = hl.ConsoleWriter(out, err, log)
+            started = time.perf_counter()
+            for i in range(200):
+                writer.stdout.write(f"line {i}\n")
+            writer.stderr.write("oops\n")
+            self.assertLess(time.perf_counter() - started, 0.5)  # the caller never waited
+            release.set()
+            writer.close()
+            with open(log, encoding="utf-8") as f:
+                logged = f.read()
+        self.assertEqual(out.getvalue(), "".join(f"line {i}\n" for i in range(200)))
+        self.assertEqual(err.getvalue(), "oops\n")
+        self.assertIn("line 199\n", logged)
+        self.assertIn("oops\n", logged)
+        self.assertEqual(writer.stdout.encoding if hasattr(out, "encoding") else None, out.encoding)
+
+
+class QuickEditTest(unittest.TestCase):
+    class FakeKernel32:
+        def __init__(self, mode, is_console=True):
+            self.mode, self.is_console, self.set_calls = mode, is_console, []
+
+        def GetStdHandle(self, which):
+            return 7
+
+        def GetConsoleMode(self, handle, mode_ref):
+            if not self.is_console:
+                return 0
+            mode_ref._obj.value = self.mode
+            return 1
+
+        def SetConsoleMode(self, handle, mode):
+            self.set_calls.append(mode)
+            return 1
+
+    def test_clears_quick_edit_and_restores_at_exit(self):
+        k = self.FakeKernel32(0x01F7)  # typical console input mode with QuickEdit (0x40) on
+        with mock.patch.object(hl.atexit, "register") as register:
+            self.assertEqual(hl.disable_quick_edit(k), 0x01F7)
+        self.assertEqual(k.set_calls, [(0x01F7 | 0x80) & ~0x40])
+        register.assert_called_once_with(k.SetConsoleMode, 7, 0x01F7)
+
+    def test_no_console_or_already_off(self):
+        for k in (self.FakeKernel32(0x01F7, is_console=False), self.FakeKernel32(0x01B7)):
+            with mock.patch.object(hl.atexit, "register") as register:
+                self.assertIsNone(hl.disable_quick_edit(k))
+            self.assertEqual(k.set_calls, [])
+            register.assert_not_called()
 
 
 # ---------------------------------------------------------------- hotkey listeners
@@ -643,6 +786,12 @@ class Radio:
         if value is True:
             self.window.radio = self.key
 
+TIMEOUT_KEY = "__TIMEOUT__"
+
+class Text:
+    def update(self, value=None):
+        log.append(["text", value])
+
 class StrVar:
     def set(self, value):
         log.append(["strvar", value])
@@ -654,7 +803,10 @@ class Window:
         self.thread_queue = queue.Queue()
         self.thread_strvar = StrVar()
     def read(self, timeout=None):
-        event, value = self.thread_queue.get(timeout=20)
+        try:
+            event, value = self.thread_queue.get(timeout=timeout / 1000 if timeout else 20)
+        except queue.Empty:
+            event, value = TIMEOUT_KEY, None
         if event is None:
             return None, None
         values = {"vc": self.radio == "vc", "im": self.radio == "im", "pitch": 10}
@@ -718,6 +870,11 @@ if __name__ == "__main__":
         for _ in range(3):
             post(listener[0].thread_id, 0x0312, 1, 0)   # WM_HOTKEY, HOTKEY_ID
             time.sleep(0.2)
+        window.write_event_value("start_vc", None)      # the user clicks Start...
+        for _ in range(3):                              # ...then drags "Fade length"
+            window.write_event_value("crossfade_length", None)
+            time.sleep(0.1)
+        time.sleep(2.0)                                 # the add-on restarts conversion once
         window.write_event_value(None, None)            # close the window
 
     threading.Thread(target=press_hotkey, daemon=True).start()
@@ -728,6 +885,8 @@ if __name__ == "__main__":
         report["events"].append([event, values["vc"], values["im"], "__HOTKEY_TOGGLE__" in values])
         if event in ["vc", "im"]:
             function = event
+        elif event == "start_vc":
+            report["started"] = report.get("started", 0) + 1
         elif event == "stop_vc" or event != "start_vc":
             report["stopped"] += 1
     report["function"] = function
@@ -780,14 +939,19 @@ class EndToEndTest(TempDirTest):
         self.assertEqual(report["config"]["sg_input_device"], MAXWELL_IN)
         self.assertIn("Fp238.pth", report["config"]["pth_path"])
         self.assertEqual(report["popup_event"], "__HOTKEY_TOGGLE__")   # popups untouched
-        self.assertEqual(report["events"], [["im", False, True, False],
-                                            ["vc", True, False, False],
-                                            ["im", False, True, False]])
-        self.assertEqual(report["stopped"], 0)
+        self.assertEqual(report["events"][:3], [["im", False, True, False],
+                                                ["vc", True, False, False],
+                                                ["im", False, True, False]])
+        # Start, a 3-event slider drag (the stock GUI stops the stream on each), one auto restart.
+        self.assertEqual([e[0] for e in report["events"][3:]],
+                         ["start_vc", "crossfade_length", "crossfade_length", "crossfade_length", "start_vc"])
+        self.assertEqual(report["started"], 2)
+        self.assertEqual(report["stopped"], 3)  # only the slider events; the hotkey never stops it
         self.assertEqual(report["function"], "im")
         self.assertEqual([e for e in report["radio_log"] if e[0] == "update"],
                          [["update", "im", True], ["update", "vc", True], ["update", "im", True]])
-        self.assertEqual(sum(e[0] == "strvar" for e in report["radio_log"]), 3)  # fire() wake-ups
+        self.assertFalse([e for e in report["radio_log"] if e[0] == "strvar"])  # no Tk calls off-thread
+        self.assertIn("restarting conversion", proc.stdout)
         self.assertIn("RegisterHotKey", proc.stdout)
         self.assertIn("voice changer OFF", proc.stdout)
 
