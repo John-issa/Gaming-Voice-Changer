@@ -1,0 +1,13 @@
+{
+  "label": "VCTK All_F - blend of every female speaker",
+  "voice": "vctk-all-f",
+  "settings": {
+    "pth_path": "models/vctk-all-f/F.pth",
+    "index_path": "models/vctk-all-f/added_IVF10216_Flat_nprobe_1_F_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.0,
+    "f0method": "rmvpe"
+  }
+}

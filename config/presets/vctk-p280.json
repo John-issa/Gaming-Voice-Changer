@@ -1,0 +1,13 @@
+{
+  "label": "VCTK p280 - English female",
+  "voice": "vctk-p280",
+  "settings": {
+    "pth_path": "models/vctk-p280/Fp280.pth",
+    "index_path": "models/vctk-p280/added_IVF1400_Flat_nprobe_1_Fp280_v2.index",
+    "pitch": 10,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.0,
+    "f0method": "rmvpe"
+  }
+}
