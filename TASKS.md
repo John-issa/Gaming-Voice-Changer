@@ -3,8 +3,8 @@
 The orchestrator is the session "Real-time voice changer for gaming", and Worker-1 does the implementation. The approved plan is [docs/PLAN.md](docs/PLAN.md), and it is the source of truth. Ask the orchestrator before you deviate from it.
 
 ## Ground rules (Worker-1)
-- **No git commits or pushes** unless the user asks. We are on `main`, which has no commits yet.
-- **No downloads** of the engine or the voices until the orchestrator relays the user's approval. Until then, write and test the code against stubs.
+- **Worker-1 does not commit or push.** The orchestrator reviews each task and commits it on `feature/voice-changer-v1`, then pushes.
+- **Downloads are limited to the two pinned manifests** (`config/engine.lock.json`, `config/models.json`), which are approved. Anything else needs the orchestrator's OK first.
 - **Never** install drivers, change Windows audio or security settings, disable antivirus, or run anything as admin. VB-CABLE install and Windows sound settings are **user steps**: document them, don't perform them.
 - Keep the code small and stdlib-only. We assemble existing tools; we do not re-implement them.
 - When a task is done, update its status here and message the orchestrator with a short summary and anything that is still unverified.
@@ -58,7 +58,7 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
 |---|------|-------|--------|
 | T0 | Repo skeleton, pinned manifests (`config/*.json`), presets, this board, `docs/PLAN.md` | Orchestrator | done |
 | T1 | `vcgui/hotkey_launcher.py` + stub-based tests | Worker-1 | done (47 stub tests pass; review fixes applied; real-engine smoke test passed) |
-| T2 | PowerShell scripts: `install-engine.ps1`, `get-models.ps1`, `launch.ps1`, root `launch.bat`, `list-devices` (flag or script), `measure-delay.ps1` | Worker-1 | in progress (scripts written; 25/25 scratch harness checks pass) |
+| T2 | PowerShell scripts: `install-engine.ps1`, `get-models.ps1`, `launch.ps1`, root `launch.bat`, `list-devices` (flag or script), `measure-delay.ps1` | Worker-1 | done (review fixes applied; tools/test_scripts.py 20 tests pass; real runs OK) |
 | T3 | Docs: `README.md`, `CREDITS.md`, `docs/windows-audio.md`, `docs/overwatch.md`, `docs/tuning.md`, `docs/voices-and-licenses.md`, `docs/perf-testing.md` | Worker-1 | in progress |
 | T4 | After the user approves downloads: run install + get-models, check the packaged `realtime_gui.py` against the facts above, smoke-test the launcher (list devices, GUI opens with the preset, hotkey flips vc/im) | Worker-1 | done (engine + 9 voice files SHA256-verified; anchors OK; smoke test passed on virtual devices, real Maxwell/CABLE in T5) |
 | T5 | In-game acceptance (plan Step 5) with the user: VB-CABLE install, Maxwell connected, Overwatch settings, FrameView runs, delay measurement | User + Worker-1 | blocked (user) |

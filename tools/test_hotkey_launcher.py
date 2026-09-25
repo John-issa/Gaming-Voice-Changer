@@ -29,18 +29,18 @@ sys.path.insert(0, os.path.join(REPO, "vcgui"))
 import hotkey_launcher as hl  # noqa: E402
 
 TEST_COMBO = "ctrl+alt+shift+f24"
-MAXWELL_IN = "Microphone (Audeze Maxwell Chat)"
+MAXWELL_IN = "Microphone (Chat-Audeze Maxwell)"  # real WASAPI name
 CABLE_IN = "CABLE Input (VB-Audio Virtual Cable)"
 DEVICES = {
     "MME": [
         ("Microsoft Sound Mapper - Input", 2, 0),
-        ("Microphone (Audeze Maxwell Chat", 1, 0),  # MME truncates names to 31 chars
+        ("Microphone (Chat-Audeze Maxwell", 1, 0),  # MME truncates names to 31 chars
         ("CABLE Input (VB-Audio Virtual C", 0, 2),
     ],
     "Windows WASAPI": [
         (MAXWELL_IN, 1, 0),
-        ("Headset Earphone (Audeze Maxwell Chat)", 0, 2),
-        ("Headphones (Audeze Maxwell Game)", 0, 2),
+        ("Speakers (Chat-Audeze Maxwell)", 0, 2),
+        ("Speakers (Game-Audeze Maxwell)", 0, 2),
         ("CABLE Output (VB-Audio Virtual Cable)", 2, 0),
         (CABLE_IN, 0, 2),
         ("Microphone (Voice.ai Audio Cable)", 2, 0),
@@ -180,7 +180,7 @@ class DeviceTest(unittest.TestCase):
         self.assertEqual(hl.match_device(outputs, ["CABLE Input"], "output", "Windows WASAPI"), CABLE_IN)
         mme_inputs = self.apis["MME"][0]
         self.assertEqual(hl.match_device(mme_inputs, ["Audeze Maxwell", "Chat"], "input", "MME"),
-                         "Microphone (Audeze Maxwell Chat")
+                         "Microphone (Chat-Audeze Maxwell")
 
     def test_no_match_lists_devices(self):
         inputs = self.apis["Windows WASAPI"][0]
