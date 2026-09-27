@@ -28,7 +28,7 @@ To uninstall later, run the same setup as administrator (it offers to remove the
 
 ### Right after installing: fix the default devices
 
-The installer can make CABLE Input the default playback device (it did on the development PC). Then system sounds and the hotkey's cue sounds go into your mic, and you hear nothing. Fix it right away:
+The installer can make CABLE Input the default playback device (it did on the development PC). Then system sounds and the hotkeys' cue sounds go into your mic, and you hear nothing. Fix it right away:
 
 1. Press Windows+R, type `mmsys.cpl` and press Enter.
 2. On the **Playback** tab, right-click `Speakers (Game-Audeze Maxwell)` and choose **Set as Default Device**.
@@ -52,6 +52,8 @@ Check these devices. The mic and both cable sides must match; on the development
 4. Click **OK**. If the RVC window was open, close it and run `launch.bat` again.
 
 Only the WASAPI rate, the **Default Format** set here, counts. If a tool shows the same devices at 44100 Hz under MME or DirectSound, ignore it: the launcher uses only Windows WASAPI.
+
+If you turn on "Exclusive WASAPI device" to shorten the delay ([tuning.md](tuning.md#what-to-expect-from-the-delay)), the engine takes the mic and CABLE Input for itself, so no other app can use the mic while conversion runs. Leave **Allow applications to take exclusive control of this device** ticked on the **Advanced** tab of both (the Windows default). The launcher skips its sample-rate check in that mode.
 
 ## 3. Turn off enhancements and Voice clarity; set Communications to "Do nothing"
 
@@ -98,7 +100,7 @@ This plays exactly what games receive from CABLE Output into your headset.
 3. Under **Playback through this device:**, choose `Speakers (Game-Audeze Maxwell)` by name. Never choose CABLE Input, and don't choose **Default Playback Device** either: whenever CABLE Input is the default playback device, CABLE Output loops back into CABLE Input (feedback into your mic).
 4. Click **Apply**.
 
-You hear your converted voice slightly late; that is the voice changer's delay ([tuning.md](tuning.md#what-to-expect-from-the-300-ms-delay-target)). Untick **Listen to this device** before a match.
+You hear your converted voice late, about 3 s at the defaults; that is the voice changer's delay ([tuning.md](tuning.md#what-to-expect-from-the-delay)). Untick **Listen to this device** before a match.
 
 ## 7. Check that the engine sees the devices
 
@@ -113,7 +115,7 @@ Output : CABLE Input (VB-Audio Virtual Cable)  (Windows WASAPI)
 
 ## Back to your real mic
 
-- **Voice changer running:** press the hotkey (Ctrl+Alt+V by default) to switch to "Input voice monitor" (`im`). Games hear your raw voice, still through the engine and the cable. See [The hotkey](../README.md#the-hotkey).
+- **Voice changer running:** press Ctrl+Alt+V to switch to "Input voice monitor" (`im`). Games hear your raw voice, still through the engine and the cable. `im` is not a mute: to go silent, use **Mute cable** (Ctrl+Alt+M). See [the README](../README.md#the-hotkeys).
 - **Voice changer closed or crashed:** the cable is silent, so point Windows back at the real mic:
   1. On the Sound dialog's **Recording** tab, right-click `Microphone (Chat-Audeze Maxwell)` and choose **Set as Default Device**. (Or in **Settings > System > Sound**, under **Input**, click the mic's row, which makes it the default.)
   2. If Overwatch uses COMMS DEVICES, also right-click the mic and choose **Set as Default Communication Device**.

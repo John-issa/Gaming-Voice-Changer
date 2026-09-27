@@ -1,5 +1,5 @@
 {
-  "label": "VCTK p231 - English female (default)",
+  "label": "VCTK p231 - English female",
   "voice": "vctk-p231",
   "settings": {
     "pth_path": "models/vctk-p231/Fp231rmvpe.pth",

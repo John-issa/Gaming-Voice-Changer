@@ -6,7 +6,7 @@ The user wants a real-time voice changer to use while playing Overwatch. The exa
 The repo `Gaming-Voice-Changer` is empty (no commits). It will hold setup scripts, pinned download manifests, voice presets, one small hotkey add-on, and docs. Engines and models stay out of git.
 
 **Constraints / answers from user**
-- Mic: Audeze Maxwell boom mic ("Chat" endpoint). It currently shows as disconnected ("Unknown"), so it must be connected for tuning.
+- Mic: Audeze Maxwell boom mic ("Chat" endpoint). It currently shows as disconnected ("Unknown"), so it must be connected for tuning. *(Since changed: connected and in use.)*
 - Destination: Overwatch voice chat. The virtual mic will work in other apps too.
 - Voices: try several, so we use presets.
 - Hotkey: voice changer on/off.
@@ -108,7 +108,8 @@ docs/                      windows-audio.md, overwatch.md, tuning.md, voices-and
   - **p238**
   - **p249**
   - More female speakers exist under `F/` and can be added the same way.
-- Each speaker folder also ships a **Beatrice v2** model (`*_beatrice-v2_*step.zip`), which gives the same voice for the CPU-only Plan C.
+  - *Since changed:* the default is now the custom voice `ex02` ([custom-voice.md](custom-voice.md)). The VCTK presets are p231, p238, p249, p262, p280, p323, p340 and the opt-in all-f, each on its rmvpe-trained build (`F/<speaker>/rmvpe/`, e.g. `Fp231rmvpe.pth`); the harvest builds are gone.
+- Each speaker folder also ships a **Beatrice v2** model (`*_beatrice-v2_*step.zip`), which gives the same voice for the CPU-only Plan C. *(Since changed: the zips are not kept locally; `get-models.ps1 -IncludeBeatrice` downloads them if Plan C is ever needed.)*
 
 **Optional anime-style extras**
 - Official **Tsukuyomi-chan RVC** (free, credit required; terms ban attacking or criticizing people).
@@ -129,10 +130,13 @@ docs/                      windows-audio.md, overwatch.md, tuning.md, voices-and
 - block_time **0.25**, crossfade **0.05**, extra_time **2.5**.
 - Noise reduction off.
 - WASAPI shared, output = CABLE Input.
+- *Since changed (live testing):* index_rate **0.5**; loudness factor (rms_mix_rate) **0.5**, **0.75** for ex02 (at 0 it turned breaths into spikes); ex02 uses pitch **+12**; quality-first timing: block_time **0.75**, crossfade **0.15**, extra_time **4.0**. Current values: [tuning.md](tuning.md#starting-values).
 
 Technique: a lighter "mixed" voice with forward resonance converts far better than falsetto.
 
 ### 4. Hotkey add-on (`vcgui/hotkey_launcher.py`, the only real code)
+
+*(Since changed: the add-on is `vcgui/hotkey_launcher.py` plus `vcgui/app_extras.py` (the Voice / Save settings / Mute cable row), about 1,200 lines, still stdlib only.)*
 - Runs on the engine's bundled Python. Uses only the stdlib: `ctypes`, `threading`, `winsound`, `runpy`, `json`.
 - Launch sequence:
   - `chdir` to `engine/` and insert it into `sys.path`.
@@ -146,12 +150,12 @@ Technique: a lighter "mixed" voice with forward resonance converts far better th
   - It posts `window.write_event_value(...)`.
   - It is **listen-only**: it never sends input to the game, and there is no AutoHotkey.
   - `"method": "poll"` fallback: a 30 ms `GetAsyncKeyState` poll, for the case where Overwatch's raw input suppresses registered hotkeys.
-- Pitch, formant and devices stay in the stock GUI window. Switching voices = relaunch with `-Preset`; the GUI needs a stream restart for a model change anyway.
+- Pitch, formant and devices stay in the stock GUI window. Switching voices = relaunch with `-Preset`; the GUI needs a stream restart for a model change anyway. *(Since changed: the Voice list at the bottom of the window switches presets in-app and restarts the stream itself; see [README](../README.md#switching-voices).)*
 
 ### 5. Overwatch setup, tuning loop, acceptance
 - **Overwatch settings:**
   - Voice Chat Devices = Default Devices (alternative: Comms, with CABLE Output as the default communication device).
-  - **Open Mic.** With push-to-talk, hold the key past the end of speech for at least the measured delay (about 0.4 s at the starting values), because there is no release delay and the converted tail would be clipped.
+  - **Open Mic.** With push-to-talk, hold the key past the end of speech for at least the measured delay (about 0.4 s at the starting values), because there is no release delay and the converted tail would be clipped. *(Since changed: about 3 s at the current defaults, so Open Mic plus the Mute cable hotkey is the practical choice; see [overwatch.md](overwatch.md#open-mic-and-the-push-to-talk-tail).)*
   - **Frame-rate cap** (required for RVC while gaming).
   - Reflex on.
 - **Tuning loop, one step at a time:**
@@ -162,7 +166,7 @@ Technique: a lighter "mixed" voice with forward resonance converts far better th
   - **1% lows ≥ 120 FPS**
   - no recurring stutter
   - GUI inference time under ~70% of block_time during fights
-  - stable end-to-end voice delay **≤ ~300 ms**, measured with `measure-delay.ps1`: FFmpeg records the raw mic and CABLE Output together, you say one short, sharp "ta!", and `silencedetect` onset times give the offset
+  - stable end-to-end voice delay **≤ ~300 ms**, measured with `measure-delay.ps1`: FFmpeg records the raw mic and CABLE Output together, you say one short, sharp "ta!", and `silencedetect` onset times give the offset. *(Since dropped: the user chose quality-first timing, and the delay is now about 3 s; see [tuning.md](tuning.md#what-to-expect-from-the-delay).)*
 
 ### Fallbacks (only if Step 5 acceptance fails)
 - **B: VCClient**, benchmarked with the same voice and the same Step 5 tests. Adopt it only if it passes.

@@ -330,6 +330,12 @@ class LaunchTest(ScriptTest):
         code, out = self.ps("launch.ps1", "-Preset", "vctk-p238")
         self.assertEqual(code, 1, out)
         self.assertIn("get-models.ps1 -Voice vctk-p238", out)
+        code, out = self.ps("launch.ps1", "-Preset", "ex02")      # the custom voice isn't downloadable
+        self.assertEqual(code, 1, out)
+        self.assertNotIn("get-models.ps1", out)
+        self.assertIn("can't be downloaded", out)
+        self.assertIn("models\\ex02", out)
+        self.assertIn("-Preset vctk-p231", out)
         code, out = self.ps("launch.ps1", "-Preset", "nope")
         self.assertEqual(code, 1, out)
         available = re.search(r"Available: (.*)", out).group(1)
@@ -397,6 +403,16 @@ class MeasureDelayAnalyzeTest(ScriptTest):
         code, out = self.analyze(self.capture("click-nogo", click, self.TA_CABLE))
         self.assertIn("1250 ms", out)  # without the GO time the click would count
 
+    def test_multi_second_delays_are_measured_and_only_absurd_ones_rejected(self):
+        # block_time 0.75 in WASAPI shared mode really is ~3 s end to end; that must count.
+        code, out = self.analyze(self.capture("slow", self.TA_MIC, self.TA_MIC, cable_offset=3.0))
+        self.assertEqual(code, 0, out)
+        self.assertIn("delay (cable - mic): 3000 ms", out)
+        self.assertNotIn("target", out)
+        code, out = self.analyze(self.capture("absurd", self.TA_MIC, self.TA_MIC, cable_offset=7.0))
+        self.assertEqual(code, 1, out)
+        self.assertIn("implausible", out)
+
     def test_silent_cable_track_is_diagnosed(self):
         code, out = self.analyze(self.capture("silent", self.TA_MIC, "0"))
         self.assertEqual(code, 1, out)
@@ -407,6 +423,31 @@ class MeasureDelayAnalyzeTest(ScriptTest):
         code, out = self.analyze(self.capture("plain", self.TA_MIC, self.TA_CABLE), "-NoiseDb", "-35")
         self.assertEqual(code, 0, out)
         self.assertIn("threshold -35 dB", out)
+
+
+ENGINE_PY = os.path.join(REPO, "engine", "runtime", "python.exe")
+
+
+@unittest.skipUnless(os.path.isfile(ENGINE_PY), "the engine (faiss) is needed")
+class BuildFullIndexTest(unittest.TestCase):
+    def test_indexes_every_vector_with_rvcs_list_count_and_nprobe(self):
+        with tempfile.TemporaryDirectory() as engine:
+            features = os.path.join(engine, "logs", "exp", "3_feature768")
+            os.makedirs(features)
+            code = ("import numpy as np, sys\n"
+                    "rng = np.random.default_rng(1)\n"
+                    "for i in range(4): np.save(sys.argv[1] + f'/{i}_0.npy', rng.standard_normal((1250, 768), dtype=np.float32))\n")
+            subprocess.run([ENGINE_PY, "-I", "-c", code, features], check=True, timeout=120)
+            p = subprocess.run([ENGINE_PY, "-I", os.path.join(REPO, "tools", "build_full_index.py"), "exp",
+                                "--engine", engine, "--seed", "1"], capture_output=True, text=True, timeout=300)
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+            path = os.path.join(engine, "logs", "exp", "added_IVF128_Flat_nprobe_4_expfull_v2.index")  # min(1131, 5000//39)
+            self.assertTrue(os.path.isfile(path), p.stdout)
+            check = ("import faiss, sys\n"
+                     "ix = faiss.read_index(sys.argv[1]); ivf = faiss.extract_index_ivf(ix)\n"
+                     "print(ix.ntotal, ivf.nlist, ivf.nprobe)\n")
+            out = subprocess.run([ENGINE_PY, "-I", "-c", check, path], capture_output=True, text=True, timeout=120)
+            self.assertEqual(out.stdout.split(), ["5000", "128", "4"], out.stderr)
 
 
 class StaticChecksTest(unittest.TestCase):

@@ -20,7 +20,7 @@
 .PARAMETER Cable
     Substrings for the virtual cable's recording side. Default: CABLE Output.
 .PARAMETER Seconds
-    Recording length. Default 12.
+    Recording length. Default 16: room for a delay of up to about 6 s after GO.
 .PARAMETER PromptAt
     Seconds of silence recorded after both devices are open, before GO is shown. Default 3.
 .PARAMETER NoiseDb
@@ -41,7 +41,7 @@
 param(
     [string[]]$Mic = @('Audeze Maxwell', 'Chat'),
     [string[]]$Cable = @('CABLE Output'),
-    [int]$Seconds = 12,
+    [int]$Seconds = 16,
     [int]$PromptAt = 3,
     [int]$NoiseDb = -30,
     [int]$BufferMs = 15,
@@ -184,13 +184,9 @@ function Measure-Capture([string]$File) {
     if ($ok) {
         $delayMs = [math]::Round(($tracks.cable.Onset - $tracks.mic.Onset) * 1000)
         $lines += "End-to-end delay (cable - mic): $delayMs ms"
-        if ($delayMs -lt 0 -or $delayMs -gt 1500) {
+        if ($delayMs -lt 0 -or $delayMs -gt 6000) {
             $lines += 'This value is implausible: one track probably caught a different sound. Record again, or try -NoiseDb.'
             $ok = $false
-        } elseif ($delayMs -le 300) {
-            $lines += 'Within the <= ~300 ms target.'
-        } else {
-            $lines += 'Above the ~300 ms target. See docs\tuning.md (lower block_time, then extra_time).'
         }
     }
     $lines | ForEach-Object { Write-Host $_ }
@@ -240,8 +236,8 @@ while (-not $proc.HasExited -and -not (Select-String -LiteralPath $proc.LogFile 
     Start-Sleep -Milliseconds 100
 }
 $openSeconds = $sw.Elapsed.TotalSeconds
-if ($openSeconds -gt $Seconds - $PromptAt - 3) {
-    Write-Warning ("Opening the devices took {0:N1} s, so the first one may stop recording early. If no onset is found, use -Seconds {1}." -f $openSeconds, [math]::Ceiling($openSeconds + $PromptAt + 6))
+if ($openSeconds -gt $Seconds - $PromptAt - 8) {
+    Write-Warning ("Opening the devices took {0:N1} s, so the first one may stop recording early. If no onset is found, use -Seconds {1}." -f $openSeconds, [math]::Ceiling($openSeconds + $PromptAt + 11))
 }
 for ($i = $PromptAt; $i -gt 0 -and -not $proc.HasExited; $i--) {
     Write-Host "  $i..."

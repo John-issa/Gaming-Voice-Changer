@@ -1,21 +1,24 @@
 # Voices and licenses
 
-Every voice this project uses is a free download that needs no account, from a source that grants the right to use it. This page summarizes each voice's terms as checked on 2026-09-24 and links the official pages. The linked terms are what apply, and they can change, so re-read them before you rely on a voice. The credits to keep are collected in [CREDITS.md](../CREDITS.md).
+Every voice this project uses is free, needs no account, and comes from sources that grant the right to use them. This page summarizes each voice's terms as checked in September 2026 and links the official pages. The linked terms are what apply, and they can change, so re-read them before you rely on a voice. The credits to keep are collected in [CREDITS.md](../CREDITS.md).
 
 ## Default voices
 
-`scripts\get-models.ps1` downloads seven English-speaking female VCTK speakers ("English" is the language, not an accent), about 1.5 GB. A blend of all of them, `vctk-all-f`, is opt-in because its index alone is 1.3 GB. Every preset starts with "Index Rate" 0.5 ([tuning.md](tuning.md#index-rate)). You pick one with `launch.bat -Preset <name>` ([Switching voices](../README.md#switching-voices)).
+The default preset is `ex02`, a custom voice trained in this repo from the Expresso dataset ([custom-voice.md](custom-voice.md)). It can't be downloaded, so [back it up](custom-voice.md#back-it-up).
+
+`scripts\get-models.ps1` downloads seven English-speaking female VCTK speakers ("English" is the language, not an accent), about 1.5 GB. A blend of all of them, `vctk-all-f`, is opt-in because its index alone is 1.3 GB. Every preset starts with "Index Rate" 0.5 ([tuning.md](tuning.md#index-rate)). You pick one with `launch.bat -Preset <name>` or from the Voice list at the bottom of the window ([Switching voices](../README.md#switching-voices)).
 
 | Preset | Files in `models\<preset>\` | Size |
 |---|---|---|
-| `vctk-p231` (the default preset) | `Fp231.pth`, `added_IVF1216_Flat_nprobe_1_Fp231_v2.index` | 205 MB |
-| `vctk-p238` | `Fp238.pth`, `added_IVF1617_Flat_nprobe_1_Fp238_v2.index` | 254 MB |
-| `vctk-p249` | `Fp249.pth`, `added_IVF1104_Flat_nprobe_1_Fp249_v2.index` | 191 MB |
-| `vctk-p262` | `Fp262.pth`, `added_IVF1305_Flat_nprobe_1_Fp262_v2.index` | 216 MB |
-| `vctk-p280` | `Fp280.pth`, `added_IVF1400_Flat_nprobe_1_Fp280_v2.index` | 228 MB |
-| `vctk-p323` | `Fp323.pth`, `added_IVF1581_Flat_nprobe_1_Fp323_v2.index` | 250 MB |
-| `vctk-p340` | `Fp340.pth`, `added_IVF1046_Flat_nprobe_1_Fp340_v2.index` | 184 MB |
-| `vctk-all-f` (opt-in: `get-models.ps1 -Voice vctk-all-f`) | `F.pth`, `added_IVF10216_Flat_nprobe_1_F_v2.index` | 1.34 GB |
+| `ex02` (the default preset; not downloadable) | `ex02t48_e200_s133600.pth`, `added_IVF13764_Flat_nprobe_4_ex02t48full_v2.index` | 2.38 GB |
+| `vctk-p231` | `Fp231rmvpe.pth`, `added_IVF1216_Flat_nprobe_1_Fp231rmvpe_v2.index` | 205 MB |
+| `vctk-p238` | `Fp238rmvpe.pth`, `added_IVF1617_Flat_nprobe_1_Fp238rmvpe_v2.index` | 254 MB |
+| `vctk-p249` | `Fp249rmvpe.pth`, `added_IVF1104_Flat_nprobe_1_Fp249rmvpe_v2.index` | 191 MB |
+| `vctk-p262` | `Fp262rmvpe.pth`, `added_IVF1305_Flat_nprobe_1_Fp262rmvpe_v2.index` | 216 MB |
+| `vctk-p280` | `Fp280rmvpe.pth`, `added_IVF1400_Flat_nprobe_1_Fp280rmvpe_v2.index` | 228 MB |
+| `vctk-p323` | `Fp323rmvpe.pth`, `added_IVF1581_Flat_nprobe_1_Fp323rmvpe_v2.index` | 250 MB |
+| `vctk-p340` | `Fp340rmvpe.pth`, `added_IVF1046_Flat_nprobe_1_Fp340rmvpe_v2.index` | 184 MB |
+| `vctk-all-f` (opt-in: `get-models.ps1 -Voice vctk-all-f`) | `All_Frmvpe.pth`, `added_IVF10216_Flat_nprobe_1_All_Frmvpe_v2.index` | 1.34 GB |
 
 ```
 powershell -ExecutionPolicy Bypass -File scripts\get-models.ps1
@@ -23,47 +26,58 @@ powershell -ExecutionPolicy Bypass -File scripts\get-models.ps1
 
 - `-List` prints the voices. `-Voice vctk-p238,vctk-all-f` fetches only those. `-IncludeBeatrice` also fetches each voice's optional Beatrice v2 zip (about 19 MB), which only the CPU-only fallback (Plan C in [PLAN.md](PLAN.md)) uses.
 - Every file is pinned by revision, size and SHA256 in `config/models.json`.
-- The models are RVC v2, trained for 250 epochs in 08/2023 with the Mangio fork of the RVC WebUI. The model card gives the training pitch extraction as "`harvest` if not `rmvpe`". Each speaker folder on Hugging Face also has an `rmvpe/` subfolder with a second model (for example `Fp231rmvpe.pth`); the presets use the top-level files. The preset's `"f0method": "rmvpe"` is the GUI's live pitch detection, a separate setting.
+- The VCTK models are RVC v2, trained by Nekochu for 250 epochs (the All_F blend 300) in 08/2023 with the Mangio fork of the RVC WebUI. The presets use the builds trained with `rmvpe` pitch extraction (each speaker's `rmvpe/` subfolder on Hugging Face), the same algorithm the GUI uses live (`"f0method": "rmvpe"`). That older RVC doesn't interpolate the pitch of unvoiced frames in training; ex02 was trained in the bundled engine, so its training and live inference match.
 
 ## License chain of the default voices
 
-| Layer | What | License | Link |
-|---|---|---|---|
-| Voice models | Nekochu/RVC-VCTK_Voice-sample (Hugging Face) | Apache-2.0 (model card) | [Model card](https://huggingface.co/Nekochu/RVC-VCTK_Voice-sample) |
-| Training data | CSTR VCTK Corpus 0.92, University of Edinburgh | CC BY 4.0 | [Edinburgh DataShare](https://datashare.ed.ac.uk/handle/10283/3443), [CC BY 4.0 legal code](https://creativecommons.org/licenses/by/4.0/legalcode.en) |
+| Voice | Layer | What | License | Link |
+|---|---|---|---|---|
+| ex02 | Training data | Expresso dataset (Meta AI, 2023), speaker ex02 | CC BY-NC 4.0 | [Expresso](https://speechbot.github.io/expresso/), [dataset README](https://github.com/facebookresearch/textlesslib/tree/main/examples/expresso/dataset), [CC BY-NC 4.0 legal code](https://creativecommons.org/licenses/by-nc/4.0/legalcode.en) |
+| ex02 | Pretrained base | TITAN-Medium 48k by blaise-tk, fine-tuned from the official RVC v2 pretrain on Expresso | Apache-2.0 | [Model card](https://huggingface.co/blaise-tk/TITAN) |
+| ex02 | Voice model | Trained in this repo ([custom-voice.md](custom-voice.md#how-it-was-made)); not redistributed | Personal, non-commercial use (follows the data) | |
+| VCTK | Voice models | Nekochu/RVC-VCTK_Voice-sample (Hugging Face) | Apache-2.0 (model card) | [Model card](https://huggingface.co/Nekochu/RVC-VCTK_Voice-sample) |
+| VCTK | Training data | CSTR VCTK Corpus 0.92, University of Edinburgh | CC BY 4.0 | [Edinburgh DataShare](https://datashare.ed.ac.uk/handle/10283/3443), [CC BY 4.0 legal code](https://creativecommons.org/licenses/by/4.0/legalcode.en) |
 
-The model card lists the VCTK dataset but says nothing about its license or attribution. This project credits the corpus anyway, because the models are built from its recordings.
+Expresso's NC (non-commercial) term carries over to ex02: use it for yourself, not for anything that earns money. A monetized stream is a grey area. TITAN's weights are Apache-2.0, but TITAN was trained on Expresso too.
+
+The Nekochu model card lists the VCTK dataset but says nothing about its license or attribution. This project credits the corpus anyway, because the models are built from its recordings.
 
 ### Attribution to keep
 
-The attribution line from `config/models.json`:
+For the VCTK voices, the attribution line from `config/models.json`:
 
 ```
 Voices: Nekochu/RVC-VCTK_Voice-sample (Apache-2.0), trained on CSTR VCTK Corpus (CC BY 4.0), University of Edinburgh.
 ```
 
-Where it goes:
+For ex02 (this project's wording):
 
-1. [CREDITS.md](../CREDITS.md), with the full VCTK citation.
-2. The end of every `get-models.ps1` run, which prints it.
-3. Anything you publish that uses these voices (a video, a clip, a stream recording): put the line in the description.
-4. If you pass the model files on to someone, include the line and the Apache-2.0 license with them.
+```
+Voice: ex02, trained on the Expresso dataset (Meta AI, CC BY-NC 4.0) from the TITAN-Medium pretrain by blaise-tk (Apache-2.0).
+```
 
-CC BY 4.0 does not license publicity, privacy or similar personality rights (Section 2(b)(1) of the legal code). The VCTK speakers are real, anonymous people, so don't present a voice as a specific real person or claim to be one.
+Where they go:
+
+1. [CREDITS.md](../CREDITS.md), with the full VCTK and Expresso citations.
+2. The end of every `get-models.ps1` run, which prints the VCTK line.
+3. Anything you publish that uses these voices (a video, a clip, a stream recording): put the line in the description. With ex02, only non-commercial ones.
+4. If you pass the VCTK model files on to someone, include the line and the Apache-2.0 license with them. ex02 is not passed on.
+
+CC BY 4.0 and CC BY-NC 4.0 do not license publicity, privacy or similar personality rights (Section 2(b)(1) of both legal codes). The VCTK and Expresso speakers are real, anonymous people, so don't present a voice as a specific real person or claim to be one.
 
 ## Add another voice
 
-Every female speaker in the model repo's `F/` folder is already set up. To add another voice from the same pinned repo (for example one of the male speakers under `M/`, for a different use):
+Every female speaker in the VCTK model repo's `F/` folder is already set up. To train a voice yourself instead, follow how ex02 was made ([custom-voice.md](custom-voice.md#rebuild-it)). To add another voice from the same pinned repo (for example one of the male speakers under `M/`, for a different use):
 
-1. Look up the size and SHA256 of its files. Open this URL in a browser, or fetch it with `curl.exe -s` (replace `<folder>`):
+1. Look up the size and SHA256 of its files. Open this URL in a browser, or fetch it with `curl.exe -s` (replace `<folder>`, for example `M/p226/rmvpe`):
 
    ```
    https://huggingface.co/api/models/Nekochu/RVC-VCTK_Voice-sample/tree/005c2f948ee9dafd7e3aa7f261b4c3a24beebeef/<folder>
    ```
 
-   For each file, `size` is the size in bytes and `lfs.oid` is the SHA256. Use the `.pth` and `.index` in the speaker folder itself, as the existing presets do.
+   For each file, `size` is the size in bytes and `lfs.oid` is the SHA256. Use the `.pth` and `.index` in the speaker's `rmvpe/` subfolder, as the existing presets do.
 
-2. Copy an existing entry in the `voices` list of `config/models.json` (keep the manifest's `revision`) and change `id`, `label`, `remote`, `local`, `size` and `sha256`. With `"default": false`, only `-Voice <id>` fetches it.
+2. Copy an existing entry in the `voices` list of `config/models.json` (keep the manifest's `revision`) and change `id`, `label`, `remote`, `local`, `size` and `sha256`. Delete the optional `beatrice` file unless you update it too. With `"default": false`, only `-Voice <id>` fetches it.
 3. Make a preset for it as in [Switching voices](../README.md#switching-voices), with `"voice"`, `"pth_path"` and `"index_path"` pointing at the new files.
 4. Download and verify with `get-models.ps1 -Voice <id>`. A file gets its final name only after its size and SHA256 match your entry. If your entry is wrong, the script stops with one of these:
 
@@ -71,7 +85,7 @@ Every female speaker in the model repo's `F/` folder is already set up. To add a
    - `...\<file>.part is ... bytes, expected ....` Fix the `size` in your entry, delete that `.part` file, and run the command again.
    - `curl.exe failed (exit 22)`: the server returned an error, for example HTTP 404 for a misspelled `remote`. Compare it with the listing from step 1.
 
-5. Run `launch.bat -Preset <id>` and tune it with [tuning.md](tuning.md).
+5. Run `launch.bat -Preset <id>`, or pick it from the Voice list (the list is read at launch, so run `launch.bat` again after adding a preset). Tune it with [tuning.md](tuning.md) and press "Save settings" to keep the values in its preset ([Keep your changes](tuning.md#keep-your-changes)).
 
 ## Rules that apply to every voice
 
@@ -81,7 +95,7 @@ Every female speaker in the model repo's `F/` folder is already set up. To add a
 
 ## Optional anime-style extras (opt-in)
 
-Two Japanese voice projects publish official, free RVC models. They are not in `config/models.json`, and the scripts never download them. Unlike the VCTK voices, which only require attribution, both come with content rules.
+Two Japanese voice projects publish official, free RVC models. They are not in `config/models.json`, and the scripts never download them. Unlike ex02 and the VCTK voices, which ask only for attribution (and, for ex02, non-commercial use), both come with content rules.
 
 ### Tsukuyomi-chan official RVC model (つくよみちゃん公式RVCモデル)
 
@@ -120,7 +134,7 @@ Competitive voice chat is where these rules bite:
 - Amitaro's voice must never pass as your own, so in a lobby you have to say it's Amitaro's RVC model (not just "a voice changer") whenever someone asks.
 - Tsukuyomi-chan requires a credit, and a voice chat lobby has no place to show it.
 
-Use the VCTK presets for normal matches. Add an extra only if you can keep to its rules.
+Use ex02 or the VCTK presets for normal matches. Add an extra only if you can keep to its rules.
 
 ### Add an extra manually
 
@@ -131,13 +145,13 @@ Use the VCTK presets for normal matches. Add an extra only if you can keep to it
 5. Show the credit wherever the terms require it.
 6. Run `launch.bat -Preset <id>`.
 
-`get-models.ps1` doesn't know these voices, so if the launcher reports missing voice files for such a preset, its `get-models.ps1` hint won't help: copy the files in again.
+`get-models.ps1` doesn't know these voices: if the launcher reports missing voice files for such a preset, copy the files in again from the zip.
 
 ## Excluded
 
 | Source | Why it is not used |
 |---|---|
-| AISO voices | Pitch-less models: the pitch slider does nothing, and they need about 2 s chunks, far longer than the 0.25 s `block_time` this setup starts with. |
+| AISO voices | Pitch-less models: the pitch slider does nothing, and they need about 2 s chunks, well over the 0.75 s `block_time` this setup starts with. |
 | Real-person or character voices from unlicensed model-sharing sites | Nobody who owns the voice has granted a license to use it. |
 | Sample models bundled with VCClient | Licensed for use in VC Client only (the Tsukuyomi-chan project states this for its model). This project runs the RVC realtime GUI, not VCClient. |
 | Voices that need an account, a purchase or a subscription | Project rule: everything must be a free download with no account and must work offline. |

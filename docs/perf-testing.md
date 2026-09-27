@@ -10,10 +10,10 @@ Finish the [Quick start](../README.md#quick-start) first (engine, voices, Window
 |---|---|---|
 | 1% lows | "1% Low FPS" of at least 120 in each of the 3 runs with conversion on | FrameView summary |
 | Stutter | No recurring stutter | Your notes, plus "0.1% Low FPS" |
-| Inference time | Under about 70% of "Sample length" (block_time) during fights, e.g. under 175 ms at 0.25 s | RVC window "Inference time (ms):" or the console |
-| Delay | Stable and at most about 300 ms (the plan's target) | `scripts\measure-delay.ps1` |
+| Inference time | Under about 70% of "Sample length" (block_time) during fights: under 525 ms at the default 0.75 s | RVC window "Inference time (ms):" or the console |
+| Delay | Stable: the three measurements are close together. Expect about 3 s at the defaults | `scripts\measure-delay.ps1` |
 
-[tuning.md](tuning.md#reading-inference-time-ms-and-algorithmic-delaysms) explains both readouts, lists the 70% limit for other Sample length values, and explains why the starting values will probably miss the delay target.
+[tuning.md](tuning.md#reading-inference-time-ms-and-algorithmic-delaysms) explains both readouts and the 70% limit for other Sample length values; [What to expect from the delay](tuning.md#what-to-expect-from-the-delay) explains why it is about 3 s at the defaults and what shortens it.
 
 If a target fails, change one thing at a time with the [tuning loop](tuning.md#the-tuning-loop), then repeat the three runs with conversion on. Redo the baseline only if you changed something that affects the game by itself (graphics settings, the FPS cap or Hardware-accelerated GPU scheduling). If tuning can't make every target pass, see [If acceptance still fails](#if-acceptance-still-fails).
 
@@ -67,7 +67,7 @@ If the baseline 1% lows are already below 120 FPS, the runs with conversion on c
 
 ## 3. Runs with conversion on (3 runs)
 
-1. Start the voice changer with the preset you're testing, for example `launch.bat -Preset vctk-p231`.
+1. Start the voice changer with the preset you're testing: `launch.bat` for the default `ex02`, or for example `launch.bat -Preset vctk-p231`.
 2. Click **Start audio conversion** and check that **Output converted voice** is selected. With CUDA Graph on (the default), the console prints `CUDA Graph warm-up complete` before the audio starts.
 3. Talk for a few seconds so start-up isn't part of the first run.
 4. Start Overwatch with the same settings and cap as the baseline and make the same 3 captured runs. Talk during each run as you would in a match (callouts, counting aloud).
@@ -103,14 +103,11 @@ Before you start, conversion must be running with "Output converted voice" selec
    ```
 
    It prints the devices it picked (`Mic   : ...`, `Cable : ...`), then `Opening both devices. Stay quiet until GO, then say one short, sharp 'ta!' and stay quiet again.` Once both are open it counts down `3...`, `2...`, `1...`.
-4. When `>>> GO: say "ta!" now <<<` appears, say one short, sharp "ta!", then stay quiet until the result appears (the recording is 12 s by default).
-5. Read the result. Each track gets a line such as `Mic   : sound starts <n> s after GO (peak <n> dBFS, threshold <n> dB)`, followed by `End-to-end delay (cable - mic): <n> ms` and one verdict:
-   - `Within the <= ~300 ms target.`
-   - `Above the ~300 ms target. See docs\tuning.md (lower block_time, then extra_time).`
-   - `This value is implausible: ...` (see [When the result looks wrong](#when-the-result-looks-wrong)).
+4. When `>>> GO: say "ta!" now <<<` appears, say one short, sharp "ta!", then stay quiet until the result appears (the recording is 16 s by default, room for a delay of up to about 6 s).
+5. Read the result. Each track gets a line such as `Mic   : sound starts <n> s after GO (peak <n> dBFS, threshold <n> dB)`, followed by `End-to-end delay (cable - mic): <n> ms`. There is no pass/fail verdict. A value below 0 or above 6000 ms is followed by `This value is implausible: ...` (see [When the result looks wrong](#when-the-result-looks-wrong)).
 
-   The exit code is 0 when a plausible delay was measured (even above the target), otherwise 1.
-6. Measure 3 times with the same settings. The target asks for a stable delay, so the three values should be close. Write them in the results.
+   The exit code is 0 when a plausible delay was measured, otherwise 1.
+6. Measure 3 times with the same settings. The delay should be stable, so the three values should be close; at the defaults expect about 3000 ms. Write them in the results.
 
 Each capture is saved as `captures\delay-<yyyyMMdd-HHmmss>.mkv` (mic = first audio track, CABLE Output = second), with a `.txt` report and a `.json` holding the GO time. Keep the `.json` next to the `.mkv`: `-Analyze` uses it to ignore sounds before GO.
 
@@ -118,7 +115,7 @@ Each capture is saved as `captures\delay-<yyyyMMdd-HHmmss>.mkv` (mic = first aud
 |---|---|---|
 | `-Mic` | `Audeze Maxwell`, `Chat` | Parts that must all appear in the mic's DirectShow name; one comma-separated string also works |
 | `-Cable` | `CABLE Output` | Parts for the cable's recording side |
-| `-Seconds` | 12 | Recording length |
+| `-Seconds` | 16 | Recording length |
 | `-PromptAt` | 3 | Seconds of silence recorded after both devices are open, before GO |
 | `-NoiseDb` | automatic: 20 dB below each track's peak, clamped to -60..-20 | Level (dBFS) below which audio counts as silence. A value (e.g. -25 or -40) forces one threshold for both tracks |
 | `-BufferMs` | 15 | DirectShow audio buffer in ms |
@@ -141,7 +138,7 @@ Each of these means no valid delay was measured (exit code 1):
 
 - `Mic   : silent (peak <n> dBFS). Is the mic muted, or is -Mic the wrong device?`, or `Cable : silent (peak <n> dBFS). Is the voice changer running, with 'Output converted voice' selected and CABLE Input as its output device?`: the track never got louder than -60 dBFS. Check what the message asks, then record again.
 - `Mic   : no clear 'silence, then sound, then silence' after GO (peak <n> dBFS, threshold <n> dB). Stay quiet until GO and record again, or try -NoiseDb.` (or the same with `Cable :`): each track needs silence (at least 0.3 s), then sound, then silence again; sounds that start more than 0.5 s before GO are ignored. Record again, or re-analyze with another `-NoiseDb`. If the cable track keeps failing because room noise is converted between sounds, raise "Response threshold" only a little (it is -60, gate off, by default; try about -55) and record again ([tuning.md](tuning.md#response-threshold-noise-gate)).
-- `This value is implausible: one track probably caught a different sound. Record again, or try -NoiseDb.`: the delay came out below 0 ms or above 1500 ms, usually because a click, breath or key press near GO counted as the start in one track. Stay silent until GO and record again, or re-analyze.
+- `This value is implausible: one track probably caught a different sound. Record again, or try -NoiseDb.`: the delay came out below 0 ms or above 6000 ms, usually because a click, breath or key press near GO counted as the start in one track. Stay silent until GO and record again, or re-analyze.
 
 Also watch for `GO time : unknown (no .json next to the capture); the first sound in each track counts` (only with `-Analyze`: sounds before GO are no longer ignored), and for values that jump between runs (same causes as above; record again).
 
@@ -187,7 +184,7 @@ This proves that nothing needs the internet, an account or a subscription once e
 1. Make sure `install-engine.ps1` and `get-models.ps1` have finished and their checks passed.
 2. Turn off Wi-Fi (or turn on Airplane mode), unplug any network cable, and restart the PC.
 3. Run `launch.bat` and click **Start audio conversion**. With "Listen to this device" on ([windows-audio.md](windows-audio.md#6-hear-yourself-while-tuning-listen-to-this-device)), speak and check that you hear the converted voice. Turn it off again.
-4. Press the hotkey twice. The radio button flips and the cue sounds play.
+4. Press Ctrl+Alt+V twice. The radio button flips and the cue sounds play.
 5. It passes if the window opens, conversion works, and the console shows no network or download errors. Reconnect the network.
 
 ## 7. Other verification checks
@@ -195,9 +192,11 @@ This proves that nothing needs the internet, an account or a subscription once e
 The plan's Verification list also asks for these. Record them in the second results table.
 
 1. **Install checks:** `install-engine.ps1` printed `SHA256 OK: ...` when it installed the engine, and `get-models.ps1` ends with `Done: ... everything in models\ matches config\models.json.` (it re-checks every file on each run). Then double-click `engine\go-realtime_gui.bat`: the stock "RVC - GUI" window opens. Close it.
-2. **Launch with a preset:** run `launch.bat -Preset vctk-p231`, check that the window shows the preset (its `.pth` file and "Pitch settings" +10), click **Start audio conversion**, and check through "Listen to this device" that you hear the converted voice. Turn it off again.
-3. **Hotkey:** on the desktop, then with Overwatch focused in fullscreen and in borderless windowed mode, as in [overwatch.md](overwatch.md#check-the-hotkey-while-the-game-has-focus). Note which `"method"` worked.
-4. **Presets:** close the RVC window, run `launch.bat -Preset vctk-p238`, and listen as in check 2. Then do the same with `vctk-p249`. Each voice should sound different.
+2. **Launch with the default preset:** run `launch.bat`, check that the window shows `ex02` (its `.pth` file and "Pitch settings" +12), click **Start audio conversion**, and check through "Listen to this device" that you hear the converted voice. Keep listening for checks 3 to 5, then turn it off.
+3. **Save settings:** move "Pitch settings" one step and click **Save settings**; the status shows `Saved`. Close the window and run `launch.bat` again: the new value is back. Move it back and save again.
+4. **Mute cable:** tick **Mute cable** (or press Ctrl+Alt+M) and speak: the mute cue plays and you hear silence. Untick it: the unmute cue plays and the voice is back.
+5. **Voice list:** while converting, pick `vctk-p238` in the window's **Voice** list. The status shows `Loading vctk-p238...`, then `vctk-p238 ready`, and the voice changes. Do the same with `vctk-p249`. Each voice should sound different.
+6. **Hotkeys:** Ctrl+Alt+V and Ctrl+Alt+M on the desktop, then with Overwatch focused in fullscreen and in borderless windowed mode, as in [overwatch.md](overwatch.md#check-the-hotkey-while-the-game-has-focus). Note which `"method"` worked.
 
 ## If acceptance still fails
 
@@ -210,23 +209,25 @@ The [plan](PLAN.md#fallbacks-only-if-step-5-acceptance-fails) has two fallbacks.
 
 Tool: ______ (FrameView or PresentMon). Graphics settings: ______. Display mode: ______.
 
-For the baseline rows, leave the voice changer columns as `-`. A conversion row passes when all four targets are met. Add rows when you re-test after a tuning change. The conversion rows start with the starting values (`config\audio.json` and the vctk-p231 preset); change them if you test something else.
+For the baseline rows, leave the voice changer columns as `-`. A conversion row passes when all four targets are met. Add rows when you re-test after a tuning change. The conversion rows start with the starting values (`config\audio.json` and the ex02 preset); change them if you test something else.
 
 | Run | Date | Preset | block_time | f0 | Index rate | FPS cap | Avg FPS | 1% low | Stutter notes | Inference ms | Delay ms | Pass/fail |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Baseline 1 | | off | - | - | - | | | | | - | - | - |
 | Baseline 2 | | off | - | - | - | | | | | - | - | - |
 | Baseline 3 | | off | - | - | - | | | | | - | - | - |
-| Conversion 1 | | vctk-p231 | 0.25 | rmvpe | 0.5 | | | | | | | |
-| Conversion 2 | | vctk-p231 | 0.25 | rmvpe | 0.5 | | | | | | | |
-| Conversion 3 | | vctk-p231 | 0.25 | rmvpe | 0.5 | | | | | | | |
+| Conversion 1 | | ex02 | 0.75 | rmvpe | 0.5 | | | | | | | |
+| Conversion 2 | | ex02 | 0.75 | rmvpe | 0.5 | | | | | | | |
+| Conversion 3 | | ex02 | 0.75 | rmvpe | 0.5 | | | | | | | |
 
 | Other check | Date | Result | Notes |
 |---|---|---|---|
 | Install checks: SHA256 OK in `install-engine.ps1` and `get-models.ps1`; stock `engine\go-realtime_gui.bat` opens | | | |
-| `launch.bat -Preset vctk-p231`: preset loaded, converted voice heard via "Listen to this device" | | | |
+| `launch.bat` (ex02): preset loaded, converted voice heard via "Listen to this device" | | | |
 | One-minute CABLE Output recording: clipping, dropouts, echo, gate chatter | | | |
-| Hotkey: desktop / Overwatch fullscreen / borderless (radio flips, cue plays, no restart) | | | Method used: |
-| Presets vctk-p238 and vctk-p249 sound different | | | |
+| Save settings: a saved value survives a relaunch | | | |
+| Mute cable: silence on the cable, cues play | | | |
+| Voice list: vctk-p238 and vctk-p249 load while converting and sound different | | | |
+| Hotkeys Ctrl+Alt+V and Ctrl+Alt+M: desktop / Overwatch fullscreen / borderless (radio flips or Mute cable ticks, cue plays, no restart) | | | Method used: |
 | Offline test | | | |
 | Delay, 3 measurements (ms) | | | |

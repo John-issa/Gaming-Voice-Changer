@@ -67,8 +67,15 @@ foreach ($key in @('pth_path', 'index_path')) {
     if ($path -and -not [IO.Path]::IsPathRooted($path)) { $path = Join-Path $Repo $path }
     if ($path -and -not (Test-Path -LiteralPath $path)) {
         $voice = Get-Prop (Read-Json $presetFile) 'voice' $Preset
+        $downloadable = @()
+        try { $downloadable = @((Read-Json (Join-Path $Repo 'config\models.json')).voices | ForEach-Object { $_.id }) } catch { }
+        if ($downloadable -contains $voice) {
+            throw (("The voice files for preset '{0}' are missing ({1}).`n" +
+                    "  Download them with: powershell -ExecutionPolicy Bypass -File scripts\get-models.ps1 -Voice {2}") -f $Preset, $path, $voice)
+        }
         throw (("The voice files for preset '{0}' are missing ({1}).`n" +
-                "  Download them with: powershell -ExecutionPolicy Bypass -File scripts\get-models.ps1 -Voice {2}") -f $Preset, $path, $voice)
+                "  This voice can't be downloaded: restore models\{2} from your backup, or rebuild it (docs\custom-voice.md).`n" +
+                "  Or use a downloadable voice: launch.bat -Preset vctk-p231") -f $Preset, $path, $voice)
     }
 }
 

@@ -34,23 +34,24 @@ Use the headset's USB connection: Blizzard says voice chat does not work correct
 
 The RVC noise gate ("Response threshold") is off by default (-60 in `config\audio.json`): it has no
 hold time, so higher values chop words. With Open Mic, rely on the Maxwell's FILTER A.I. on low
-([windows-audio.md](windows-audio.md#5-maxwell-headset-filter-ai-low-sidetone-off)) and on Overwatch's own
-voice activation instead. Only if breathing or room noise between words turns into odd sounds, raise the
-gate to about -55 ([tuning.md](tuning.md#response-threshold-noise-gate)).
+([windows-audio.md](windows-audio.md#5-maxwell-headset-filter-ai-low-sidetone-off)). Only if breathing
+or room noise between words turns into odd sounds, raise the gate to about -55
+([tuning.md](tuning.md#response-threshold-noise-gate)).
 
-The hotkey is not a mute: in `im` teammates hear your real voice. To go silent, use Overwatch's own
-voice chat controls, for example turn TEAM VOICE CHAT off.
+**To go silent,** press **Ctrl+Alt+M** (or tick **Mute cable** at the bottom of the RVC window); press
+it again to unmute. Ctrl+Alt+V is not a mute: in `im` teammates hear your real voice. Both hotkeys:
+[README](../README.md#the-hotkeys).
 
 **If you use push to talk anyway:** the converted voice reaches the cable later than you speak and
 Overwatch has no release delay, so releasing the key on your last word cuts it off. Keep holding it
 after you stop speaking for at least the delay `scripts\measure-delay.ps1` reports
-([perf-testing.md](perf-testing.md#4-measure-the-delay-measure-delayps1)): about 0.4 s at the
-starting values ([why](tuning.md#what-to-expect-from-the-300-ms-delay-target)). The binding is in
-**Options > Controls** (it may be called VOICE CHAT: PUSH TO TALK).
+([perf-testing.md](perf-testing.md#4-measure-the-delay-measure-delayps1)): about 3 s at the
+defaults ([why](tuning.md#what-to-expect-from-the-delay)). That is why Open Mic plus Mute cable is the
+practical choice. The binding is in **Options > Controls** (it may be called VOICE CHAT: PUSH TO TALK).
 
 ## Frame-rate cap (required)
 
-The voice model shares the GPU and must convert each "Sample length" (0.25 s by default) before the
+The voice model shares the GPU and must convert each "Sample length" (0.75 s by default) before the
 next is due. Uncapped, the game keeps the GPU busy, "Inference time (ms)" jumps and your voice
 stutters. A cap leaves spare GPU time. Choose it once, before the [perf-testing.md](perf-testing.md) baseline:
 
@@ -74,24 +75,28 @@ input latency; it does not replace the cap. Keep the same Reflex setting for all
 1. Before starting the game, run `launch.bat`, click **Start audio conversion**, and hear exactly
    what Overwatch records with [Listen to this device](windows-audio.md#6-hear-yourself-while-tuning-listen-to-this-device).
 2. For the other side, form a group with a friend and join Group Voice Chat (Social menu, P by
-   default > Channels > headphone icon). Press the hotkey so they can compare your real voice.
+   default > Channels > headphone icon). Press Ctrl+Alt+V so they can compare your real voice.
 
 ## Check the hotkey while the game has focus
 
-A focused game can keep a registered hotkey from firing, so test both display modes. What the hotkey
-does and how to change it: [README](../README.md#the-hotkey).
+A focused game can keep a registered hotkey from firing, so test both hotkeys in both display modes.
+What they do and how to change them: [README](../README.md#the-hotkeys).
 
 1. Run `launch.bat`, click **Start audio conversion**, and keep "Output converted voice" selected.
 2. In Overwatch, set **Options > Video > DISPLAY MODE** to fullscreen; go to the Practice Range.
 3. Press Ctrl+Alt+V: the `Speech Off.wav` cue (a short chime) plays for the raw mic. Press it again: the `Speech On.wav` cue plays for the converted voice.
-4. Alt+Tab out. The console shows `[hotkey] voice changer OFF (im: raw mic)` and
-   `[hotkey] voice changer ON (vc)`, the radio button moved each time, and conversion kept running.
-5. Repeat steps 3 and 4 in borderless windowed mode.
+4. Press Ctrl+Alt+M: the `Speech Sleep.wav` cue plays (muted). Press it again: the
+   `Windows Notify System Generic.wav` cue plays (unmuted).
+5. Alt+Tab out. The console shows `[hotkey] voice changer OFF (im: raw mic)`,
+   `[hotkey] voice changer ON (vc)`, `[mute] cable muted: silence on the output` and
+   `[mute] cable unmuted`; the radio button and **Mute cable** changed each time, and conversion kept running.
+6. Repeat steps 3 to 5 in borderless windowed mode.
 
 If nothing happens while Overwatch has focus, close the RVC window, change `"method"` in
-`config\hotkey.json` from `"registerhotkey"` to `"poll"`, and run `launch.bat` again. The console
-then says `[hotkey] ctrl+alt+v toggles the voice changer (polling every 30 ms)`. Test again.
-Polling doesn't reserve the combo, so Overwatch sees the keys too: make sure the game doesn't use it.
+`config\hotkey.json` from `"registerhotkey"` to `"poll"` (it applies to both hotkeys), and run
+`launch.bat` again. The console then says `[hotkey] ctrl+alt+v toggles the voice changer (polling every 30 ms)`
+and `[hotkey] ctrl+alt+m mutes/unmutes the cable (polling every 30 ms)`. Test again. Polling doesn't
+reserve the combos, so Overwatch sees the keys too: make sure the game doesn't use them.
 
 ## Public voice chat
 

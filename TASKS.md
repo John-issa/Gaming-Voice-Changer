@@ -3,7 +3,7 @@
 The orchestrator is the session "Real-time voice changer for gaming", and Worker-1 does the implementation. The approved plan is [docs/PLAN.md](docs/PLAN.md), and it is the source of truth. Ask the orchestrator before you deviate from it.
 
 ## Ground rules (Worker-1)
-- **Worker-1 does not commit or push.** The orchestrator reviews each task and commits it on `feature/voice-changer-v1`, then pushes.
+- **Worker-1 does not commit or push.** The orchestrator reviews each task and commits it on `main`, then pushes.
 - **Downloads are limited to the two pinned manifests** (`config/engine.lock.json`, `config/models.json`), which are approved. Anything else needs the orchestrator's OK first.
 - **Never** install drivers, change Windows audio or security settings, disable antivirus, or run anything as admin. VB-CABLE install and Windows sound settings are **user steps**: document them, don't perform them.
 - Keep the code small and stdlib-only. We assemble existing tools; we do not re-implement them.
@@ -45,10 +45,10 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
   - `load()` wraps everything in a bare `try/except`. A missing `sr_type`, `sg_hostapi`, `sg_input_device` or `sg_output_device` makes it silently rewrite `config.json` with defaults, which drops the preset. The launcher must guarantee these keys and fail loudly otherwise. (Found by Worker-1.)
   - The input and output noise-reduce checkboxes don't read `config.json` (no `default=`), so they're not configurable from our presets. Toggle them in the GUI if needed.
   - `RVC_CUDA_GRAPH=0` env var disables the CUDA Graph path; it is auto-enabled otherwise.
-- **Cue sounds:** `C:\Windows\Media\Speech On.wav` / `Speech Off.wav` exist.
+- **Cue sounds:** `C:\Windows\Media\Speech On.wav` / `Speech Off.wav` (vc/im) and `Speech Sleep.wav` / `Windows Notify System Generic.wav` (mute) exist.
 - **FFmpeg 9.0.2** is on PATH (winget).
   - `ffmpeg -list_devices true -f dshow -i dummy` lists capture devices.
-  - The Maxwell is currently disconnected and VB-CABLE isn't installed yet, so real device tests wait for the user.
+  - VB-CABLE is installed and the Maxwell connected (both were missing when this board started); live tests ran on them.
   - Pitfall: ffmpeg normalises each input's start time separately. Two dshow inputs in one run are NOT time-aligned by default. Use wallclock timestamps + `-copyts` into a pts-preserving container (e.g. `.mkv`), then run `silencedetect` with `-copyts` on each, or another method that keeps both inputs on one clock.
   - Use `-audio_buffer_size` of about 10–20 ms (the dshow default is ~500 ms).
 
@@ -59,11 +59,12 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
 | T0 | Repo skeleton, pinned manifests (`config/*.json`), presets, this board, `docs/PLAN.md` | Orchestrator | done |
 | T1 | `vcgui/hotkey_launcher.py` + stub-based tests | Worker-1 | done (47 stub tests pass; review fixes applied; real-engine smoke test passed) |
 | T2 | PowerShell scripts: `install-engine.ps1`, `get-models.ps1`, `launch.ps1`, root `launch.bat`, `list-devices` (flag or script), `measure-delay.ps1` | Worker-1 | done (review fixes applied; tools/test_scripts.py 20 tests pass; real runs OK) |
-| T3 | Docs: `README.md`, `CREDITS.md`, `docs/windows-audio.md`, `docs/overwatch.md`, `docs/tuning.md`, `docs/voices-and-licenses.md`, `docs/perf-testing.md` | Worker-1 | done (7 docs, 1045 lines; links/anchors checked; awaiting review) |
+| T3 | Docs: `README.md`, `CREDITS.md`, `docs/windows-audio.md`, `docs/overwatch.md`, `docs/tuning.md`, `docs/voices-and-licenses.md`, `docs/perf-testing.md`, `docs/custom-voice.md` | Worker-1 | done (first pass 3973c6e; final housekeeping pass after T6-T8: ex02 default, current timing and delay, in-app row, new `docs/custom-voice.md`) |
 | T4 | After the user approves downloads: run install + get-models, check the packaged `realtime_gui.py` against the facts above, smoke-test the launcher (list devices, GUI opens with the preset, hotkey flips vc/im) | Worker-1 | done (engine + 9 voice files SHA256-verified; anchors OK; smoke test passed on virtual devices, real Maxwell/CABLE in T5) |
-| T6 | Smoothness: find and fix the intermittent crackle/"robotic" spikes (suspects: rms_mix_rate 0 gain spikes, SOLA crossfade, overruns, CUDA Graph, f0); fix the GUI freeze when non-live sliders (crossfade/sample length/extra) are moved | Worker-1 | in progress (priority; T3 docs parked until the end) |
-| T7 | Optional: train a custom English female voice if no VCTK preset satisfies the user (plan Step 6) | Worker-1 | in progress (user approved 2026-09-25, quality first: Expresso speaker, ~2-3 h data, TITAN-Medium 48k base, bundled WebUI trainer) |
-| T5 | In-game acceptance (plan Step 5) with the user: VB-CABLE install, Maxwell connected, Overwatch settings, FrameView runs, delay measurement | User + Worker-1 | blocked (user) |
+| T6 | Smoothness: find and fix the intermittent crackle/"robotic" spikes (suspects: rms_mix_rate 0 gain spikes, SOLA crossfade, overruns, CUDA Graph, f0); fix the GUI freeze when non-live sliders (crossfade/sample length/extra) are moved | Worker-1 | done (timing sliders auto-restart conversion; the audio thread never blocks on Tk; quality-first timing 0.75 / 0.15 / 4.0 s and loudness factor 0.5 or more; rmvpe-trained VCTK builds replace the harvest ones) |
+| T7 | Optional: train a custom English female voice if no VCTK preset satisfies the user | Worker-1 | done (`ex02`: Expresso speaker ex02, ~4.5 h, TITAN-Medium 48k base, bundled WebUI trainer; epoch 200 + full index; now the default preset; rebuild recipe in [docs/custom-voice.md](docs/custom-voice.md#rebuild-it)) |
+| T8 | In-app extras: a bottom row in the RVC window with Voice (switch presets live), Save settings, Mute cable (+ Ctrl+Alt+M) (`vcgui/app_extras.py`) | Worker-1 | done (0280d60; 80 launcher tests pass; smoke-tested on the real engine) |
+| T5 | In-game acceptance (plan Step 5) with the user: Overwatch settings, FrameView runs, delay measurement (VB-CABLE and the Maxwell are in place) | User + Worker-1 | blocked (user) |
 
 ### T1 — `vcgui/hotkey_launcher.py` (acceptance)
 - Runs with `engine\runtime\python.exe -I vcgui\hotkey_launcher.py --engine <dir> --preset <id>`.
@@ -105,22 +106,22 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
   - reads `models.json`; default = voices with `"default": true`, non-optional files;
   - `-Voice id,...`, `-IncludeBeatrice`;
   - resumable download, SHA256 verify, skip files already verified.
-- `launch.ps1` (`-Preset`, default `vctk-p231`; `-NoCudaGraph`; `-ListDevices`):
+- `launch.ps1` (`-Preset`, default `ex02` since T7, was `vctk-p231`; `-NoCudaGraph`; `-ListDevices`):
   - set PATH to include `engine\runtime`;
   - run the engine's python `-I` on `hotkey_launcher.py`;
   - print friendly errors if the engine or models are missing.
 - Root `launch.bat` forwards args to `launch.ps1` (`-ExecutionPolicy Bypass -NoProfile`) and does `chcp 65001`.
 - `measure-delay.ps1`:
   - resolve dshow device names by substring (defaults "Audeze Maxwell"/"Chat" and "CABLE Output");
-  - record ~12 s from both on one clock (see the pitfall above);
+  - record from both on one clock (see the pitfall above; 16 s by default since the delay grew to ~3 s);
   - the user says a sharp "ta!" a few seconds in;
   - report onset(cable) − onset(mic) in ms;
   - save captures to `captures/` (git-ignored).
 - All scripts: `Set-StrictMode`, `$ErrorActionPreference='Stop'`, repo-relative paths via `$PSScriptRoot`, and no admin.
 
 ### T3 — docs (acceptance)
-Follow `docs/PLAN.md` Steps 0–6, Fallbacks and Verification.
-- README: quick start (install engine → get voices → one-time Windows audio setup → Overwatch settings → `launch.bat -Preset vctk-p231`), daily use, hotkey, "back to real mic", switching voices, troubleshooting.
+Follow `docs/PLAN.md` Steps 0–5, Fallbacks and Verification.
+- README: quick start (install engine → get voices → one-time Windows audio setup → Overwatch settings → `launch.bat`, ex02 since T7; was `-Preset vctk-p231`), daily use, hotkey, "back to real mic", switching voices, troubleshooting.
 - `docs/windows-audio.md` = plan Step 1 (user steps, VB-CABLE Pack45, 48 kHz, defaults, "Listen to this device").
 - `docs/overwatch.md` = Voice Chat Devices, Open Mic, FPS cap, Reflex, push-to-talk tail note.
 - `docs/tuning.md` = starting values + the one-step tuning loop + pitch formula + technique.
@@ -128,4 +129,4 @@ Follow `docs/PLAN.md` Steps 0–6, Fallbacks and Verification.
   - VCTK attribution;
   - optional Tsukuyomi-chan / Amitaro with their content clauses;
   - excluded sources and why.
-- `docs/perf-testing.md` = baseline/acceptance protocol (FrameView ×3, 1% lows ≥ 120 FPS, inference < ~70% of block_time, delay ≤ ~300 ms) plus a results table to fill in.
+- `docs/perf-testing.md` = baseline/acceptance protocol (FrameView ×3, 1% lows ≥ 120 FPS, inference < ~70% of block_time, delay ≤ ~300 ms; that delay target was dropped for the quality-first timing) plus a results table to fill in.
