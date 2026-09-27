@@ -8,7 +8,7 @@
     The hotkey from config\hotkey.json (default Ctrl+Alt+V) switches between the
     converted voice (vc) and your raw mic (im).
 .PARAMETER Preset
-    A file name from config\presets without .json. Default: vctk-p231.
+    A file name from config\presets without .json. Default: ex02 (the custom voice).
 .PARAMETER NoCudaGraph
     Set RVC_CUDA_GRAPH=0 to turn off the engine's CUDA Graph path (try it if conversion misbehaves).
 .PARAMETER ListDevices
@@ -25,7 +25,7 @@
 #>
 [CmdletBinding()]
 param(
-    [string]$Preset = 'vctk-p231',
+    [string]$Preset = 'ex02',
     [switch]$NoCudaGraph,
     [switch]$ListDevices,
     [switch]$ListPresets,

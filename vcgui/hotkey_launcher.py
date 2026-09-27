@@ -2,7 +2,7 @@
 
 Run it with the engine's bundled Python (scripts/launch.ps1 does this for you):
 
-    engine\\runtime\\python.exe -I vcgui\\hotkey_launcher.py --engine engine --preset vctk-p231
+    engine\\runtime\\python.exe -I vcgui\\hotkey_launcher.py --engine engine --preset ex02
 
 Stdlib only, plus the engine's own sounddevice and FreeSimpleGUI. No engine file is
 modified: the launcher writes engine/configs/config.json (the file the GUI itself
@@ -38,7 +38,7 @@ LIVE_EVENTS = frozenset(("vc", "im", "threhold", "pitch", "formant", "index_rate
                          "pm", "rmvpe", "fcpe", "I_noise_reduce", "O_noise_reduce"))
 # Sliders that stop the stream; conversion restarts by itself once they settle, if it was running.
 RESTART_EVENTS = frozenset(("block_time", "crossfade_length", "extra_time"))
-DEFAULT_PRESET = "vctk-p231"
+DEFAULT_PRESET = "ex02"
 
 # realtime_gui.py load() indexes these with data[...] inside a bare try/except; a missing
 # one makes it silently overwrite config.json with defaults and drop the preset.
