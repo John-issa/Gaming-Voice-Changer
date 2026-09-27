@@ -1,8 +1,11 @@
 {
-  "_comment": "toggle flips converted voice (vc) <-> raw mic (im). method: 'registerhotkey' (default) or 'poll' (GetAsyncKeyState, use if the hotkey doesn't fire while Overwatch is focused).",
+  "_comment": "toggle flips converted voice (vc) <-> raw mic (im). mute (optional; leave empty to disable) puts silence on the cable in either mode. method: 'registerhotkey' (default) or 'poll' (GetAsyncKeyState, use if the hotkeys don't fire while Overwatch is focused).",
   "toggle": "ctrl+alt+v",
   "method": "registerhotkey",
   "poll_interval_ms": 30,
   "cue_vc": "C:\\Windows\\Media\\Speech On.wav",
-  "cue_im": "C:\\Windows\\Media\\Speech Off.wav"
+  "cue_im": "C:\\Windows\\Media\\Speech Off.wav",
+  "mute": "ctrl+alt+m",
+  "cue_mute": "C:\\Windows\\Media\\Speech Sleep.wav",
+  "cue_unmute": "C:\\Windows\\Media\\Windows Notify System Generic.wav"
 }

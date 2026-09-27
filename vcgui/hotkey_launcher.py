@@ -7,7 +7,8 @@ Run it with the engine's bundled Python (scripts/launch.ps1 does this for you):
 Stdlib only, plus the engine's own sounddevice and FreeSimpleGUI. No engine file is
 modified: the launcher writes engine/configs/config.json (the file the GUI itself
 saves), patches FreeSimpleGUI.Window.read in memory, and runs realtime_gui.py via runpy.
-The hotkey only listens; it never sends input to any window.
+The Voice / Save settings / Mute cable row comes from app_extras.py. The hotkeys only
+listen; they never send input to any window.
 """
 
 import argparse
@@ -28,8 +29,11 @@ try:
 except ImportError:  # only the cue sounds need it
     winsound = None
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))  # python -I doesn't add the script dir
+import app_extras  # noqa: E402
+from app_extras import GUI_TITLE  # noqa: E402
+
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-GUI_TITLE = "RVC - GUI"
 TOGGLE_EVENT = "__HOTKEY_TOGGLE__"
 POLL_MS = 50  # the GUI's read() wakes this often to apply queued work (hotkey, audio-thread updates)
 RESTART_DELAY = 0.8  # s of quiet after a timing-slider change before conversion restarts
@@ -299,18 +303,21 @@ def user32():
     return _USER32
 
 
-def safe_call(callback):
+def safe_call(callback, what="toggle"):
     try:
         callback()
     except Exception as e:  # keep the listener alive whatever the GUI does
-        print(f"[hotkey] toggle failed: {e!r}")
+        print(f"[hotkey] {what} failed: {e!r}")
 
 
 class RegisteredHotkey(threading.Thread):
-    """RegisterHotKey(NULL, ...) + GetMessageW loop; WM_HOTKEY arrives on this thread's queue."""
+    """RegisterHotKey(NULL, ...) + GetMessageW loop; WM_HOTKEY arrives on this thread's queue.
 
-    def __init__(self, mods, vk, callback):
-        super().__init__(name="hotkey-register", daemon=True)
+    The id is per thread (hWnd NULL), so the mute listener is a second instance on its own thread.
+    """
+
+    def __init__(self, mods, vk, callback, name="hotkey-register"):
+        super().__init__(name=name, daemon=True)
         self.mods, self.vk, self.callback = mods, vk, callback
         self.ready = threading.Event()
         self.error = None
@@ -329,7 +336,7 @@ class RegisteredHotkey(threading.Thread):
         try:
             while u.GetMessageW(ctypes.byref(msg), None, 0, 0) > 0:
                 if msg.message == WM_HOTKEY and msg.wParam == HOTKEY_ID:
-                    safe_call(self.callback)
+                    safe_call(self.callback, self.name)
         finally:
             u.UnregisterHotKey(None, HOTKEY_ID)
 
@@ -349,8 +356,8 @@ def combo_down(mods, vk, key_down):
 class PolledHotkey(threading.Thread):
     """Fallback: poll GetAsyncKeyState and fire once per press (edge-triggered)."""
 
-    def __init__(self, mods, vk, callback, interval_ms=30, key_down=None):
-        super().__init__(name="hotkey-poll", daemon=True)
+    def __init__(self, mods, vk, callback, interval_ms=30, key_down=None, name="hotkey-poll"):
+        super().__init__(name=name, daemon=True)
         self.mods, self.vk, self.callback = mods, vk, callback
         self.interval = max(5, int(interval_ms)) / 1000.0
         self.key_down = key_down or (lambda v: bool(user32().GetAsyncKeyState(v) & 0x8000))
@@ -364,39 +371,58 @@ class PolledHotkey(threading.Thread):
     def poll_once(self):
         down = combo_down(self.mods, self.vk, self.key_down)
         if down and not self._was_down:
-            safe_call(self.callback)
+            safe_call(self.callback, self.name)
         self._was_down = down
 
     def stop(self):
         self._stop_event.set()
 
 
-def start_hotkey(cfg, callback):
-    combo = cfg.get("toggle", "ctrl+alt+v")
+def start_hotkey(cfg, callback, key="toggle", default="ctrl+alt+v", action="toggles the voice changer",
+                 suffix=""):
+    """Start a listener for hotkey.json's `key` combo; None if the key is optional and not set."""
+    combo = cfg.get(key, default)
+    if not combo:
+        return None
     method = cfg.get("method", "registerhotkey")
     interval = cfg.get("poll_interval_ms", 30)
     try:
         mods, vk = parse_hotkey(combo)
     except ValueError as e:
-        raise LaunchError(f"config/hotkey.json: {e}")
+        raise LaunchError(f"config/hotkey.json: {key}: {e}")
     if method not in ("registerhotkey", "poll"):
         raise LaunchError(f"config/hotkey.json: method must be 'registerhotkey' or 'poll', got {method!r}")
     if vk in NUMPAD_DIGITS and not user32().GetKeyState(VK_NUMLOCK) & 1:
         print(f"[hotkey] NumLock is off: {combo} only works while NumLock is on.")
     if method == "registerhotkey":
-        listener = RegisteredHotkey(mods, vk, callback)
+        listener = RegisteredHotkey(mods, vk, callback, name="hotkey-register" + suffix)
         listener.start()
         if not listener.ready.wait(5):
             listener.error = "no answer from the hotkey thread"
         if listener.error is None:
-            print(f"[hotkey] {combo} toggles the voice changer (RegisterHotKey)")
+            print(f"[hotkey] {combo} {action} (RegisterHotKey)")
             return listener
         print(f"[hotkey] RegisterHotKey({combo}) failed: {listener.error}\n"
               f"[hotkey] Falling back to polling the keyboard every {interval} ms.")
-    listener = PolledHotkey(mods, vk, callback, interval)
+    listener = PolledHotkey(mods, vk, callback, interval, name="hotkey-poll" + suffix)
     listener.start()
-    print(f"[hotkey] {combo} toggles the voice changer (polling every {interval} ms)")
+    print(f"[hotkey] {combo} {action} (polling every {interval} ms)")
     return listener
+
+
+def check_hotkeys(cfg):
+    """The toggle and the optional mute combo must parse and differ (one press would fire both)."""
+    combos = {}
+    for key, default in (("toggle", "ctrl+alt+v"), ("mute", None)):
+        combo = cfg.get(key, default)
+        if not combo:
+            continue
+        try:
+            combos[key] = parse_hotkey(combo)
+        except ValueError as e:
+            raise LaunchError(f"config/hotkey.json: {key}: {e}")
+    if "mute" in combos and combos["mute"] == combos.get("toggle"):
+        raise LaunchError("config/hotkey.json: toggle and mute use the same keys")
 
 
 # ---------------------------------------------------------------- console
@@ -598,8 +624,12 @@ class AutoRestart:
             return True
         return False
 
+    def schedule(self, now):
+        """We are stopping the stream ourselves (a voice switch): start it again at the next poll."""
+        self.running, self.due = False, now
 
-def flip(window, values, toggle):
+
+def flip(window, values, toggle, extras=None):
     """Select the other vc/im radio and return the stock radio event for it."""
     try:
         vc_on = bool(window["vc"].get())
@@ -615,16 +645,20 @@ def flip(window, values, toggle):
     values["vc"], values["im"] = key == "vc", key == "im"
     play_cue(toggle.cues[key])
     print("[hotkey] voice changer ON (vc)" if key == "vc" else "[hotkey] voice changer OFF (im: raw mic)")
+    if extras is not None:
+        extras.on_flip()  # still muted? say so
     return key, values
 
 
-def patch_window(sg, toggle, clock=time.monotonic, poll_ms=POLL_MS, restart_delay=RESTART_DELAY):
+def patch_window(sg, toggle, clock=time.monotonic, poll_ms=POLL_MS, restart_delay=RESTART_DELAY,
+                 extras=None):
     """Patch FreeSimpleGUI so the stock GUI gets the hotkey, never blocks audio, and restarts itself.
 
     For the "RVC - GUI" window, read() (called by realtime_gui without a timeout) becomes a loop of
     short reads: in between it applies deferred element updates, turns hotkey presses into the stock
     "vc"/"im" radio events, and after a timing-slider change sends "start_vc" once the slider has
     settled. Timeouts never reach the stock handler, which would stop the stream on unknown events.
+    Events of the app_extras row go to extras.handle() and never reach it either.
     Popups (sg.popup) also call read(); only the main window is affected.
     """
     original = sg.Window.read
@@ -645,11 +679,18 @@ def patch_window(sg, toggle, clock=time.monotonic, poll_ms=POLL_MS, restart_dela
             if event is None:  # sg.WIN_CLOSED
                 toggle.window = None
                 return event, values
+            if extras is not None and event in app_extras.EVENTS:
+                result = extras.handle(self, event, values, restart, clock())
+                if result is not None:
+                    return result
+                continue
             if event == TOGGLE_EVENT:  # posted with write_event_value by older callers
-                return flip(self, values, toggle)
+                return flip(self, values, toggle, extras)
             if event == timeout_key:
+                if extras is not None:
+                    extras.idle(self, values, restart)
                 if toggle.take():
-                    return flip(self, values, toggle)
+                    return flip(self, values, toggle, extras)
                 if restart.ready(clock()):
                     print("[launcher] restarting conversion with the new setting...")
                     return "start_vc", values
@@ -697,10 +738,18 @@ def main(argv=None):
         cfg, preset = build_config(engine, args.preset, sd)
         path = write_engine_config(engine, cfg)
         hotkey = load_json(os.path.join(REPO, "config", "hotkey.json"), "config/hotkey.json")
+        check_hotkeys(hotkey)
         import FreeSimpleGUI as sg
         toggle = Toggle(hotkey.get("cue_vc", ""), hotkey.get("cue_im", ""))
-        patch_window(sg, toggle)
+        mute = app_extras.Mute(hotkey.get("cue_mute", ""), hotkey.get("cue_unmute", ""), play=play_cue)
+        if not app_extras.wrap_stream(sd, mute):
+            print("[mute] unavailable: sounddevice has no Stream class")
+        extras = app_extras.Extras(REPO, args.preset, mute, load_json, model_path, F0_METHODS)
+        app_extras.patch_layout(sg, extras)
+        patch_window(sg, toggle, extras=extras)
         start_hotkey(hotkey, toggle.fire)
+        start_hotkey(hotkey, mute.toggle, key="mute", default=None, action="mutes/unmutes the cable",
+                     suffix="-mute")
     except LaunchError as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 2
@@ -711,7 +760,8 @@ def main(argv=None):
     print(f"Input  : {cfg['sg_input_device']}")
     print(f"Output : {cfg['sg_output_device']}  ({cfg['sg_hostapi']})")
     print(f"Wrote  : {path}")
-    print("Click 'Start audio conversion' in the RVC window to begin.")
+    print("Click 'Start audio conversion' in the RVC window to begin. "
+          "Voice, Save settings and Mute cable are in its bottom row.")
     run_gui(engine)
     return 0
 

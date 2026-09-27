@@ -85,6 +85,11 @@ def write_json(path, data):
         json.dump(data, f)
 
 
+def read_bytes(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
 def make_repo(root, hotkey=None):
     """A throwaway repo: real config/ files, dummy voice files, and an engine/ with a configs/ dir."""
     shutil.copytree(os.path.join(REPO, "config"), os.path.join(root, "config"))
@@ -904,7 +909,8 @@ class EndToEndTest(TempDirTest):
         self.engine = make_repo(self.tmp, hotkey={"toggle": TEST_COMBO, "method": "registerhotkey",
                                                   "poll_interval_ms": 30, "cue_vc": "", "cue_im": ""})
         os.makedirs(os.path.join(self.tmp, "vcgui"))
-        shutil.copy(os.path.join(REPO, "vcgui", "hotkey_launcher.py"), os.path.join(self.tmp, "vcgui"))
+        for name in ("hotkey_launcher.py", "app_extras.py"):
+            shutil.copy(os.path.join(REPO, "vcgui", name), os.path.join(self.tmp, "vcgui"))
         stubs = os.path.join(self.tmp, "stubs")
         os.makedirs(os.path.join(stubs, "FreeSimpleGUI"))
         files = {
@@ -993,6 +999,590 @@ class EndToEndTest(TempDirTest):
         proc = self.launch("--engine", os.path.join(self.tmp, "no-engine"))
         self.assertEqual(proc.returncode, 2)
         self.assertIn("install-engine", proc.stderr)
+
+
+# ---------------------------------------------------------------- app extras (Voice / Save / Mute)
+
+
+import app_extras as ax  # noqa: E402  (vcgui is on sys.path above)
+
+GROUPS = {"f0": ("pm", "rmvpe", "fcpe"), "function": ("vc", "im")}
+
+
+class Element:
+    """A keyed FreeSimpleGUI element stand-in: .update(value=...) and radio groups."""
+
+    def __init__(self, window, key, value=None):
+        self.window, self.key, self.value, self.updates = window, key, value, []
+
+    def update(self, value=None, **kwargs):
+        self.updates.append(value)
+        self.value = value
+        for group in GROUPS.values():
+            if self.key in group and value is True:
+                for other in group:
+                    if other != self.key:
+                        self.window.AllKeysDict[other].value = False
+
+
+def extras_sg():
+    """A FreeSimpleGUI stand-in for the extras: a keyed "RVC - GUI" window scripted with events.
+    A scripted (key, value) tuple sets that element first (a user edit), then returns key."""
+
+    class Text:
+        def update(self, value=None):
+            pass
+
+    class Window:
+        def __init__(self, title=ax.GUI_TITLE, events=(), initial=None):
+            self.Title = title
+            self.events = list(events)
+            self.timeouts = []
+            state = {"pth_path": "C:\\old.pth", "index_path": "C:\\old.index", "pitch": 12.0, "formant": 0.0,
+                     "index_rate": 0.5, "rms_mix_rate": 0.75, "threhold": -60.0, "block_time": 0.75,
+                     "crossfade_length": 0.15, "extra_time": 4.0, "pm": False, "rmvpe": True, "fcpe": False,
+                     "vc": True, "im": False, ax.PRESET_KEY: "", ax.MUTE_KEY: False, ax.STATUS_KEY: ""}
+            state.update(initial or {})
+            self.AllKeysDict = {k: Element(self, k, v) for k, v in state.items()}
+
+        def read(self, timeout=None):
+            self.timeouts.append(timeout)
+            event = self.events.pop(0) if self.events else TIMEOUT
+            if callable(event):
+                event = event(self)
+            if isinstance(event, tuple):
+                key, value = event
+                self.AllKeysDict[key].value = value
+                event = key
+            if event is None:
+                return None, None
+            return event, {k: e.value for k, e in self.AllKeysDict.items() if k != ax.STATUS_KEY}
+
+        def __getitem__(self, key):
+            return self.AllKeysDict[key]
+
+        def status(self):
+            return self.AllKeysDict[ax.STATUS_KEY].value
+
+    return types.SimpleNamespace(Window=Window, Text=Text, TIMEOUT_KEY=TIMEOUT)
+
+
+class ExtrasTest(TempDirTest):
+    def setUp(self):
+        super().setUp()
+        make_repo(self.tmp)
+        self.running = [False]
+        self.played = []
+        self.alerts = []
+        self.mute = ax.Mute("mute.wav", "unmute.wav", play=self.played.append)
+        self.extras = ax.Extras(self.tmp, "ex02", self.mute, hl.load_json, hl.model_path, hl.F0_METHODS,
+                                is_running=lambda restart: self.running[0],
+                                alert=lambda: self.alerts.append(1))
+        self.sg = extras_sg()
+        self.toggle = hl.Toggle()
+        hl.patch_window(self.sg, self.toggle, clock=FakeClock(), restart_delay=0.8, extras=self.extras)
+        self.out = io.StringIO()
+        redirect = contextlib.redirect_stdout(self.out)
+        redirect.__enter__()
+        self.addCleanup(redirect.__exit__, None, None, None)
+
+    def preset_path(self, pid):
+        return os.path.join(self.tmp, "config", "presets", pid + ".json")
+
+    def window(self, events, **initial):
+        """A window showing the temp repo's ex02 values (not the live, user-tuned files), plus overrides."""
+        target = self.extras.load_target("ex02")
+        state = {k: v for k, v in target.items() if k != "f0method"}
+        state.update({m: m == target["f0method"] for m in ("pm", "rmvpe", "fcpe")})
+        state.update(initial)
+        return self.sg.Window(events=events, initial=state)
+
+    # -------- voice switch
+
+    def test_switch_while_running_restarts_with_the_new_voice(self):
+        self.running[0] = True
+        target = read_json(self.preset_path("vctk-p231"))["settings"]
+        window = self.window([(ax.PRESET_KEY, self.extras.display("vctk-p231"))])
+        event, values = window.read()
+        self.assertEqual(event, "stop_vc")                       # the stock handler stops the stream...
+        self.assertEqual(window.status(), "Loading vctk-p231...")
+        self.running[0] = False
+        event, values = window.read()                            # ...and the next poll restarts it
+        self.assertEqual(event, "start_vc")
+        self.assertEqual(values["pth_path"], os.path.join(self.tmp, os.path.normpath(target["pth_path"])))
+        self.assertEqual(values["index_path"], os.path.join(self.tmp, os.path.normpath(target["index_path"])))
+        self.assertEqual(values["pitch"], target["pitch"])
+        self.assertEqual(values["rms_mix_rate"], target["rms_mix_rate"])
+        self.assertEqual(values["block_time"], read_json(os.path.join(self.tmp, "config", "audio.json"))["settings"]["block_time"])
+        self.assertEqual([values[m] for m in ("pm", "rmvpe", "fcpe")],
+                         [m == target["f0method"] for m in ("pm", "rmvpe", "fcpe")])
+        self.assertEqual(self.extras.active, "vctk-p231")
+        self.running[0] = True                                   # the stock start is done
+        window.events = [TIMEOUT, "pitch"]
+        self.assertEqual(window.read()[0], "pitch")
+        self.assertEqual(window.status(), "vctk-p231 ready")
+
+    def test_switch_while_stopped_only_sets_the_widgets(self):
+        window = self.window([(ax.PRESET_KEY, self.extras.display("vctk-p238")), "pitch"])
+        event, values = window.read()
+        self.assertEqual(event, "pitch")                         # nothing was sent for the switch
+        self.assertIn("Fp238rmvpe.pth", window["pth_path"].value)
+        self.assertEqual(window.status(), "vctk-p238: press Start")
+        self.assertEqual(self.extras.active, "vctk-p238")
+
+    def test_reselecting_the_active_voice_does_nothing(self):
+        window = self.window([(ax.PRESET_KEY, self.extras.display("ex02")), "pitch"])
+        self.assertEqual(window.read()[0], "pitch")
+        self.assertEqual(window["pth_path"].updates, [])
+        self.assertEqual(window.status(), "")
+
+    def test_broken_voice_is_refused_and_nothing_changes(self):
+        os.remove(os.path.join(self.tmp, "models", "vctk-p249", "Fp249rmvpe.pth"))
+        self.running[0] = True
+        window = self.window([(ax.PRESET_KEY, self.extras.display("vctk-p249")), "pitch"])
+        self.assertEqual(window.read()[0], "pitch")              # no stop_vc: conversion keeps running
+        self.assertEqual(window["pth_path"].updates, [])
+        self.assertEqual(window[ax.PRESET_KEY].value, self.extras.display("ex02"))  # the list is put back
+        self.assertEqual(window.status(), "Can't load vctk-p249")
+        self.assertEqual(self.alerts, [1])
+        self.assertEqual(self.extras.active, "ex02")
+        self.assertIn("get-models", self.out.getvalue())
+
+    def test_bad_values_in_a_preset_are_refused(self):
+        original = read_json(self.preset_path("vctk-p238"))
+        for bad in ({"f0method": "crepe"}, {"pitch": True}, {"index_rate": "0.5"}, {"block_time": "x"}):
+            preset = json.loads(json.dumps(original))  # one bad value at a time
+            preset["settings"].update(bad)
+            write_json(self.preset_path("vctk-p238"), preset)
+            with self.subTest(bad=bad), self.assertRaisesRegex(ValueError, next(iter(bad))):
+                self.extras.load_target("vctk-p238")
+
+    def test_switch_applies_audio_json_timing_or_the_presets_override(self):
+        audio = read_json(os.path.join(self.tmp, "config", "audio.json"))["settings"]
+        preset = read_json(self.preset_path("vctk-p249"))
+        preset["settings"]["block_time"] = 0.5
+        write_json(self.preset_path("vctk-p249"), preset)
+        window = self.window([(ax.PRESET_KEY, self.extras.display("vctk-p238")), "pitch",
+                              (ax.PRESET_KEY, self.extras.display("vctk-p249")), "pitch",
+                              (ax.PRESET_KEY, self.extras.display("vctk-p238")), "pitch"],
+                             block_time=0.3, threhold=-40.0)
+        window.read()
+        self.assertEqual((window["block_time"].value, window["threhold"].value),
+                         (audio["block_time"], audio["threhold"]))  # unsaved slider edits are replaced
+        window.read()
+        self.assertEqual(window["block_time"].value, 0.5)
+        window.read()
+        self.assertEqual(window["block_time"].value, audio["block_time"])
+
+    def test_switch_during_a_pending_restart_rides_on_it(self):
+        self.running[0] = True
+        window = self.window(["start_vc", "block_time", (ax.PRESET_KEY, self.extras.display("vctk-p238"))])
+        self.assertEqual(window.read()[0], "start_vc")
+        self.assertEqual(window.read()[0], "block_time")     # the stock handler stops the stream
+        self.running[0] = False
+        event, values = window.read()                        # the pick, then the pending restart
+        self.assertEqual(event, "start_vc")
+        self.assertIn("Fp238rmvpe.pth", values["pth_path"])
+        self.running[0] = True
+        window.events = [TIMEOUT, "pitch"]
+        window.read()
+        self.assertEqual(window.status(), "vctk-p238 ready")
+
+    def test_default_running_check_reads_the_engines_flag(self):
+        extras = ax.Extras(self.tmp, "ex02", self.mute, hl.load_json, hl.model_path, hl.F0_METHODS)
+        sg = extras_sg()
+        hl.patch_window(sg, hl.Toggle(), clock=FakeClock(), extras=extras)
+        engine = types.ModuleType("__main__")
+        for flag, first in ((True, "stop_vc"), (False, "pitch")):
+            engine.flag_vc = flag
+            pick = "vctk-p238" if flag else "ex02"
+            with self.subTest(flag_vc=flag), mock.patch.dict(sys.modules, {"__main__": engine}):
+                window = sg.Window(events=[(ax.PRESET_KEY, extras.display(pick)), "pitch"])
+                self.assertEqual(window.read()[0], first)
+
+    # -------- save
+
+    def test_save_writes_voice_to_the_preset_and_timing_to_audio_json(self):
+        audio_path = os.path.join(self.tmp, "config", "audio.json")
+        audio_before = read_json(audio_path)
+        preset_before = read_json(self.preset_path("ex02"))
+        window = self.window([ax.SAVE_KEY, "pitch"], pitch=14.0, formant=0.15000000000000002, index_rate=0.6,
+                             rms_mix_rate=0.8, rmvpe=False, fcpe=True, threhold=-50.0, block_time=0.9)
+        self.assertEqual(window.read()[0], "pitch")              # Save never reaches the stock handler
+        preset, audio = read_json(self.preset_path("ex02")), read_json(audio_path)
+        self.assertEqual({k: preset["settings"][k] for k in ("pitch", "formant", "index_rate", "rms_mix_rate",
+                                                             "f0method")},
+                         {"pitch": 14, "formant": 0.15, "index_rate": 0.6, "rms_mix_rate": 0.8, "f0method": "fcpe"})
+        self.assertIsInstance(preset["settings"]["pitch"], int)
+        for key in ("label", "voice"):
+            self.assertEqual(preset[key], preset_before[key])
+        for key in ("pth_path", "index_path"):                   # model paths are never saved from the GUI
+            self.assertEqual(preset["settings"][key], preset_before["settings"][key])
+        self.assertEqual(audio["settings"]["threhold"], -50)
+        self.assertEqual(audio["settings"]["block_time"], 0.9)
+        self.assertNotIn("block_time", preset["settings"])
+        for key in ("hostapi", "input_device_match", "output_device_match", "_comment"):
+            self.assertEqual(audio[key], audio_before[key])
+        for path in (self.preset_path("ex02"), audio_path):     # the files' own layout, no temp left
+            with open(path, encoding="utf-8") as f:
+                self.assertEqual(f.read(), ax.dump_json(read_json(path)) + "\n")
+            self.assertFalse(os.path.exists(path + ".tmp"))
+        self.assertEqual(window.status(), "Saved")
+
+    def test_save_without_changes_writes_nothing(self):
+        paths = (self.preset_path("ex02"), os.path.join(self.tmp, "config", "audio.json"))
+        before = [read_bytes(p) for p in paths]
+        stamps = [os.stat(p).st_mtime_ns for p in paths]
+        window = self.window([ax.SAVE_KEY, "pitch"])             # the widgets hold the saved values
+        window.read()
+        self.assertEqual([read_bytes(p) for p in paths], before)
+        self.assertEqual([os.stat(p).st_mtime_ns for p in paths], stamps)
+        self.assertEqual(window.status(), "No changes")
+
+    def test_save_keeps_a_preset_timing_override_in_the_preset(self):
+        preset = read_json(self.preset_path("ex02"))
+        preset["settings"]["block_time"] = 0.5
+        write_json(self.preset_path("ex02"), preset)
+        audio_before = read_bytes(os.path.join(self.tmp, "config", "audio.json"))
+        self.window([ax.SAVE_KEY, "pitch"], block_time=0.6).read()
+        self.assertEqual(read_json(self.preset_path("ex02"))["settings"]["block_time"], 0.6)
+        self.assertEqual(read_bytes(os.path.join(self.tmp, "config", "audio.json")), audio_before)
+
+    def test_save_failure_leaves_the_files_alone(self):
+        window = self.window([ax.SAVE_KEY, "pitch"], pitch=3.0)
+        with open(self.preset_path("ex02"), "w", encoding="utf-8") as f:
+            f.write("{not json")
+        self.assertEqual(window.read()[0], "pitch")
+        with open(self.preset_path("ex02"), encoding="utf-8") as f:
+            self.assertEqual(f.read(), "{not json")
+        self.assertEqual(window.status(), "Save failed")
+        self.assertEqual(self.alerts, [1])
+
+    def test_failed_write_keeps_the_old_file_and_leaves_no_temp(self):
+        path = self.preset_path("ex02")
+        before = read_bytes(path)
+        window = self.window([ax.SAVE_KEY, "pitch"], pitch=3.0)
+        with mock.patch.object(ax.os, "replace", side_effect=OSError("disk full")):
+            window.read()
+        self.assertEqual(read_bytes(path), before)
+        self.assertFalse(os.path.exists(path + ".tmp"))
+        self.assertEqual(window.status(), "Save failed")
+        self.assertIn("nothing written", self.out.getvalue())
+        self.assertEqual(self.alerts, [1])
+
+    def test_dump_json_reproduces_every_shipped_config_file(self):
+        folder = os.path.join(REPO, "config")
+        paths = [os.path.join(folder, "audio.json"), os.path.join(folder, "hotkey.json")]
+        paths += [os.path.join(folder, "presets", n) for n in os.listdir(os.path.join(folder, "presets"))]
+        for path in paths:
+            with open(path, encoding="utf-8") as f:
+                raw = f.read()
+            with self.subTest(path=path):
+                self.assertEqual(ax.dump_json(json.loads(raw)) + "\n", raw)
+
+    # -------- mute
+
+    def test_mute_checkbox_and_hotkey_stay_in_sync(self):
+        window = self.window([(ax.MUTE_KEY, True), "pitch"])
+        self.assertEqual(window.read()[0], "pitch")              # the checkbox event is consumed
+        self.assertTrue(self.mute.on)
+        self.assertEqual(window.status(), "Muted")
+        self.assertEqual(self.played, ["mute.wav"])
+        worker = threading.Thread(target=self.mute.toggle)       # the mute hotkey thread
+        worker.start()
+        worker.join()
+        self.assertTrue(window[ax.MUTE_KEY].value)               # no Tk from that thread...
+        window.events = [TIMEOUT, "pitch"]
+        window.read()                                            # ...the GUI thread follows at the next poll
+        self.assertFalse(window[ax.MUTE_KEY].value)
+        self.assertEqual(window.status(), "Unmuted")
+        self.assertEqual(self.played, ["mute.wav", "unmute.wav"])
+
+    def test_vc_im_hotkey_while_muted_reminds_with_the_mute_cue(self):
+        self.mute.on = True
+        window = self.window([TIMEOUT])
+        self.toggle.window = window
+        self.toggle.fire()
+        with mock.patch.object(hl, "winsound", None):
+            event, _ = window.read()
+        self.assertEqual(event, "im")
+        self.assertEqual(self.played, ["mute.wav"])
+        self.assertIn("still muted", self.out.getvalue())
+
+    def test_stream_wrapper_zeroes_output_only_while_muted(self):
+        class Buffer:
+            def __init__(self):
+                self.data = [0.25, 0.25]
+
+            def fill(self, value):
+                self.data = [value] * len(self.data)
+
+        calls = []
+
+        class Stream:
+            def __init__(self, callback=None, blocksize=0):
+                self.callback, self.blocksize = callback, blocksize
+
+        sd = types.SimpleNamespace(Stream=Stream)
+        self.assertTrue(ax.wrap_stream(sd, self.mute))
+        wrapped = sd.Stream
+        self.assertTrue(ax.wrap_stream(sd, self.mute))           # idempotent
+        self.assertIs(sd.Stream, wrapped)
+
+        def engine_callback(indata, outdata, frames, time, status):
+            calls.append(frames)
+            outdata.data = [0.5, -0.5]
+
+        stream = sd.Stream(callback=engine_callback, blocksize=2)
+        self.assertEqual(stream.blocksize, 2)
+        for muted, expected in ((False, [0.5, -0.5]), (True, [0, 0]), (True, [0, 0]), (False, [0.5, -0.5])):
+            self.mute.on = muted
+            out = Buffer()
+            stream.callback(None, out, 2, None, None)
+            self.assertEqual(out.data, expected)
+        self.assertEqual(len(calls), 4)                          # the engine runs even while muted
+        self.assertFalse(ax.wrap_stream(types.SimpleNamespace(), self.mute))
+
+    def test_unmute_never_sends_what_was_said_while_muted(self):
+        """The engine outputs a block from its recent input history (the tail of the previous
+        block + most of the current one). Speech captured while muted must not come out later."""
+        class Samples(list):
+            def copy(self):
+                return Samples(self)
+
+            def fill(self, value):
+                self[:] = [value] * len(self)
+
+        block, tail = 8, 3
+        history = Samples([0.0] * block)
+
+        def engine_callback(indata, outdata, frames, time, status):  # "im" mode: input passes through
+            history[:] = history[block - tail:] + list(indata)
+            outdata[:] = history[:block]
+            del history[:len(history) - block]
+
+        sd = types.SimpleNamespace(Stream=type("Stream", (), {"__init__": lambda s, callback=None, **k:
+                                                              setattr(s, "callback", callback)}))
+        ax.wrap_stream(sd, self.mute)
+        stream = sd.Stream(callback=engine_callback)
+        SECRET, LIVE = 9.0, 1.0
+        sent = []
+        script = [(False, LIVE), ("mute", SECRET), (None, SECRET), ("unmute-midblock", SECRET), (None, LIVE),
+                  (None, LIVE)]
+        for action, value in script:
+            if action == "mute":
+                self.mute.set(True)
+            elif action == "unmute-midblock":        # unmute lands while this block is being captured
+                self.mute.set(False)
+            out = Samples([0.0] * block)
+            stream.callback(Samples([value] * block), out, block, None, None)
+            sent.extend(out)
+        self.assertNotIn(SECRET, sent)
+        self.assertIn(LIVE, sent[-block:])                       # and the live voice is back
+
+    @unittest.skipUnless(__import__("importlib").util.find_spec("numpy"), "numpy not installed")
+    def test_mute_onset_fades_instead_of_cutting(self):
+        import numpy as np
+        out = np.full((1000, 2), 0.5, dtype=np.float32)
+        ax.fade_out(out)
+        self.assertAlmostEqual(float(out[0, 0]), 0.5)
+        self.assertTrue(np.all(np.diff(out[:ax.FADE_FRAMES, 0]) <= 0))
+        self.assertTrue(np.all(out[ax.FADE_FRAMES:] == 0))
+
+    # -------- layout
+
+    def test_row_goes_into_the_rvc_window_only(self):
+        made = []
+
+        class Window:
+            def __init__(self, title, layout=None, finalize=False):
+                made.append((title, layout))
+
+        sg = types.SimpleNamespace(Window=Window, Text=lambda *a, **k: ("Text", a, k.get("key")),
+                                   Combo=lambda values, **k: ("Combo", values, k["key"]),
+                                   Button=lambda text, **k: ("Button", text, k["key"]),
+                                   Checkbox=lambda text, **k: ("Checkbox", text, k["key"]))
+        ax.patch_layout(sg, self.extras)
+        sg.Window(ax.GUI_TITLE, layout=[["stock"]], finalize=True)
+        sg.Window("popup", layout=[["ok"]])
+        (_, rvc), (_, popup) = made
+        self.assertEqual(rvc[0], ["stock"])
+        row = rvc[1]
+        self.assertEqual([e[0] for e in row], ["Text", "Combo", "Button", "Checkbox", "Text"])
+        self.assertIn(self.extras.display("ex02"), row[1][1])
+        self.assertIn(self.extras.display("vctk-p231"), row[1][1])
+        self.assertEqual(popup, [["ok"]])
+
+    def test_row_failure_keeps_the_stock_window(self):
+        made = []
+
+        class Window:
+            def __init__(self, title, layout=None, finalize=False):
+                made.append(layout)
+
+        ax.patch_layout(types.SimpleNamespace(Window=Window), self.extras)  # no Combo etc.
+        Window(ax.GUI_TITLE, layout=[["stock"]])
+        self.assertEqual(made, [[["stock"]]])
+        self.assertIn("could not add", self.out.getvalue())
+
+
+class MuteHotkeyConfigTest(unittest.TestCase):
+    def test_shipped_hotkey_json_has_a_valid_mute_combo(self):
+        cfg = read_json(os.path.join(REPO, "config", "hotkey.json"))
+        hl.check_hotkeys(cfg)
+        self.assertTrue(cfg["mute"])
+        for key in ("cue_mute", "cue_unmute"):
+            self.assertIn(key, cfg)
+
+    def test_duplicate_or_bad_combos_fail(self):
+        for cfg in ({"toggle": "ctrl+alt+v", "mute": "Alt+Ctrl+V"}, {"mute": "ctrl+alt+v"},
+                    {"toggle": "ctrl+alt+v", "mute": "ctrl+nope"}):
+            with self.subTest(cfg=cfg), self.assertRaises(hl.LaunchError):
+                hl.check_hotkeys(cfg)
+        hl.check_hotkeys({"toggle": "ctrl+alt+v"})               # mute is optional
+        hl.check_hotkeys({"toggle": "ctrl+alt+v", "mute": ""})
+
+    def test_no_mute_combo_starts_no_listener(self):
+        self.assertIsNone(hl.start_hotkey({"toggle": "ctrl+alt+v"}, lambda: None, key="mute", default=None))
+
+
+STUB_FREESIMPLEGUI_ROW = '''
+import queue
+WIN_CLOSED = None
+TIMEOUT_KEY = "__TIMEOUT__"
+
+class Element:
+    def __init__(self, *args, key=None, default=None, default_value=None, **kwargs):
+        self.key, self.args = key, args
+        self.value = default_value if default_value is not None else default
+    def update(self, value=None, **kwargs):
+        self.value = value
+
+Text = Button = Checkbox = Element
+
+class Combo(Element):
+    def __init__(self, values, **kwargs):
+        super().__init__(**kwargs)
+        self.values = list(values)
+
+class Window:
+    def __init__(self, title, layout=None, finalize=False):
+        self.Title = title
+        self.thread_queue = queue.Queue()
+        self.AllKeysDict = {e.key: e for row in layout or [] for e in row if getattr(e, "key", None)}
+    def read(self, timeout=None):
+        try:
+            event, value = self.thread_queue.get(timeout=timeout / 1000 if timeout else 20)
+        except queue.Empty:
+            return TIMEOUT_KEY, {}
+        if event is None:
+            return None, None
+        values = {k: e.value for k, e in self.AllKeysDict.items()}
+        values[event] = value
+        return event, values
+    def write_event_value(self, key, value):
+        self.thread_queue.put((key, value))
+    def __getitem__(self, key):
+        return self.AllKeysDict[key]
+'''
+
+STUB_REALTIME_GUI_MUTE = '''
+import ctypes, json, os, threading, time
+now_dir = os.path.dirname(os.path.abspath(__file__))
+
+if __name__ == "__main__":
+    import FreeSimpleGUI as sg
+    import sounddevice as sd
+
+    class Out:
+        def __init__(self):
+            self.data = [0.5] * 4
+        def fill(self, value):
+            self.data = [value] * len(self.data)
+
+    def audio_callback(indata, outdata, frames, times, status):
+        outdata.data = [0.5] * 4
+
+    window = sg.Window("RVC - GUI", layout=[[sg.Text("stock", key="stock")]], finalize=True)
+    stream = sd.Stream(callback=audio_callback, blocksize=4)
+    report = {"keys": sorted(window.AllKeysDict), "voices": window["vcgui_preset"].values,
+              "events": [], "probes": []}
+
+    def drive():
+        time.sleep(0.3)
+        listener = [t for t in threading.enumerate() if t.name == "hotkey-register-mute"]
+        report["mute_listener"] = bool(listener)
+        if listener:                      # the mute hotkey, as a real WM_HOTKEY on its thread
+            post = ctypes.WinDLL("user32").PostThreadMessageW
+            post.argtypes = (ctypes.c_ulong, ctypes.c_uint, ctypes.c_size_t, ctypes.c_ssize_t)
+            post(listener[0].thread_id, 0x0312, 1, 0)
+        else:
+            window.write_event_value("vcgui_mute", True)
+        time.sleep(0.3)
+        window.write_event_value("probe", None)
+        time.sleep(0.2)
+        window.write_event_value("vcgui_mute", False)   # the checkbox
+        time.sleep(0.2)
+        window.write_event_value("probe", None)
+        time.sleep(0.2)
+        window.write_event_value(None, None)
+
+    threading.Thread(target=drive, daemon=True).start()
+    while True:
+        event, values = window.read()
+        if event is None:
+            break
+        report["events"].append(event)
+        if event == "probe":
+            out = Out()
+            stream.callback(None, out, 4, None, None)
+            report["probes"].append(out.data)
+    report["mute_box"] = window["vcgui_mute"].value
+    with open(os.path.join(now_dir, "report.json"), "w") as f:
+        json.dump(report, f)
+'''
+
+
+class MuteEndToEndTest(EndToEndTest):
+    """The real launcher with a stub engine that opens an sd.Stream: mute by hotkey, unmute by checkbox."""
+
+    def setUp(self):
+        super().setUp()
+        with open(os.path.join(self.tmp, "config", "hotkey.json"), "w", encoding="utf-8") as f:
+            json.dump({"toggle": TEST_COMBO, "mute": "ctrl+alt+shift+f23", "cue_vc": "", "cue_im": "",
+                       "cue_mute": "", "cue_unmute": ""}, f)
+        stubs = os.path.join(self.tmp, "stubs")
+        files = {os.path.join(stubs, "FreeSimpleGUI", "__init__.py"): STUB_FREESIMPLEGUI_ROW,
+                 os.path.join(stubs, "sounddevice.py"): FAKE_SOUNDDEVICE.format(devices=DEVICES)
+                 + "\nclass Stream:\n    def __init__(self, callback=None, **kwargs):\n        self.callback = callback\n",
+                 os.path.join(self.engine, "realtime_gui.py"): STUB_REALTIME_GUI_MUTE}
+        for path, text in files.items():
+            with open(path, "w", encoding="utf-8") as f:
+                f.write(textwrap.dedent(text))
+
+    def test_mute_by_hotkey_and_checkbox_silences_the_stream(self):
+        proc = self.launch("--engine", self.engine, "--preset", "ex02")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        report = read_json(os.path.join(self.engine, "report.json"))
+        for key in ("vcgui_preset", "vcgui_save", "vcgui_mute", "vcgui_status"):
+            self.assertIn(key, report["keys"])
+        self.assertIn("ex02 - " + read_json(os.path.join(self.tmp, "config", "presets", "ex02.json"))["label"],
+                      report["voices"])
+        self.assertEqual(report["probes"], [[0, 0, 0, 0], [0.5, 0.5, 0.5, 0.5]])
+        self.assertEqual(report["events"], ["probe", "probe"])  # the mute event never reaches the engine
+        self.assertFalse(report["mute_box"])
+        self.assertIn("[mute] cable muted", proc.stdout)
+        self.assertIn("[mute] cable unmuted", proc.stdout)
+        if report["mute_listener"]:
+            self.assertIn("mutes/unmutes the cable (RegisterHotKey)", proc.stdout)
+
+    # the inherited end-to-end tests run against the original stubs, not these
+    test_launch_hotkey_toggles_without_stopping_stream = None
+    test_list_devices = None
+    test_list_devices_redirected_non_cp1252_name = None
+    test_list_presets = None
+    test_missing_voice_is_a_friendly_error = None
+    test_missing_engine = None
 
 
 if __name__ == "__main__":
