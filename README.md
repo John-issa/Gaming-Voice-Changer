@@ -169,6 +169,7 @@ The launcher rewrites `engine\configs\config.json` at every start: the engine's 
 | [docs/voices-and-licenses.md](docs/voices-and-licenses.md) | The voices and their licenses, adding voices, optional anime-style extras and their rules, excluded sources. |
 | [docs/custom-voice.md](docs/custom-voice.md) | The default voice `ex02`: what it is, backing it up, how it was made, how to rebuild it, the dev tools. |
 | [docs/perf-testing.md](docs/perf-testing.md) | Baseline and acceptance runs, delay measurement with `scripts\measure-delay.ps1`, offline test, results tables. |
+| [docs/landscape.md](docs/landscape.md) | Dated log of alternatives checked against this stack, and what would change each verdict. Re-check periodically. |
 | [docs/PLAN.md](docs/PLAN.md) | Design decisions and the fallbacks (VCClient, CPU-only Beatrice v2). |
 | [CREDITS.md](CREDITS.md) | Attribution for the engine, the voices, the `ex02` training data and pretrain, and the tools. |
 
