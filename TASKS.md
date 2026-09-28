@@ -65,6 +65,27 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
 | T7 | Optional: train a custom English female voice if no VCTK preset satisfies the user | Worker-1 | done (`ex02`: Expresso speaker ex02, ~4.5 h, TITAN-Medium 48k base, bundled WebUI trainer; epoch 200 + full index; now the default preset; rebuild recipe in [docs/custom-voice.md](docs/custom-voice.md#rebuild-it)) |
 | T8 | In-app extras: a bottom row in the RVC window with Voice (switch presets live), Save settings, Mute cable (+ Ctrl+Alt+M) (`vcgui/app_extras.py`) | Worker-1 | done (0280d60; 80 launcher tests pass; smoke-tested on the real engine) |
 | T5 | In-game acceptance (plan Step 5) with the user: Overwatch settings, FrameView runs, delay measurement (VB-CABLE and the Maxwell are in place) | User + Worker-1 | blocked (user) |
+| T14 | Listening samples of candidate voices (`captures\voice-options\`) | Worker-1 | done (user picked EARS p033, female, low register, +6.9 st from the user; and EARS p105, male, +0.0 st) |
+
+### Next (planned 2026-09-28, not started: waiting for the user's go)
+
+**Daytime (no overnight GPU run needed)**
+
+| # | Task | Notes |
+|---|---|---|
+| T9 | Fair block-size A/B, offline: block 0.25/0.35/0.5/0.75 with fade 0.15, rms 0.75, pitch 12 held fixed; then extra 2.5 vs 4.0 | The user listens; picks the lowest delay that stays smooth |
+| T10 | Pitch A/B, offline: +12/+14/+16/+18 and target-aware log-f0 mapping (`rt_render --f0-map`, partly written) | The user listens; mapping becomes a preset option only if it wins |
+| T11 | Decoupled audio I/O in the add-on (est. ~3 s -> ~1.1-1.3 s, same sound): design review first, then build + tests + smoke test | Must include a bounded-age reset; must coexist with Mute and auto-restart |
+| T12 | EARS training prep for p033 and p105: a prep tool (like `tools/expresso_prep.py`) that builds each speaker's training folder from `downloads\ears\` (all styles, laughs/non-verbal capped), then WebUI slicing, f0, features and the index | CPU + short GPU; the data is already downloaded |
+| T13 | Base-model choice for ~1 h speakers: TITAN-Medium 48k (as ex02) vs the official 48k pretrain; the epoch count for ~1 h of data (likely more epochs than ex02's 200, with frequent saves) | Decide before the first overnight run |
+
+**Overnight (one voice per night; the GPU is busy all night)**
+
+| # | Task | Notes |
+|---|---|---|
+| T15 | Train `ears-p033` (female, low register): expected +7 semitones from the user's voice instead of +18 | Save candidates for a morning audition; the user picks the checkpoint |
+| T16 | Train `ears-p105` (male, the user's own range, ~0 st) | Same flow |
+| T17 | After each pick: full index, final preset (`config/presets/ears-p033.json`, `ears-p105.json`), shown in the in-app Voice list; clean the training files | Back up `models\` afterwards |
 
 ### T1 — `vcgui/hotkey_launcher.py` (acceptance)
 - Runs with `engine\runtime\python.exe -I vcgui\hotkey_launcher.py --engine <dir> --preset <id>`.
