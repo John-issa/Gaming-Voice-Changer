@@ -1,6 +1,6 @@
 # Gaming Voice Changer
 
-A real-time voice changer for gaming on Windows. It converts your headset mic into another voice (by default `ex02`, a natural English female voice trained for this project) and hands the result to games as an ordinary microphone. It is set up for Overwatch (formerly Overwatch 2) voice chat, and it works with any app that records from the default Windows mic. Nothing is re-implemented: it assembles free tools (the official RVC realtime GUI, RVC voice models and the VB-CABLE virtual audio cable) and adds one small add-on for voice presets, two hotkeys and a Voice / Save settings / Mute cable row in the window. The signal chain, with the Windows WASAPI device names from the development PC (as `launch.bat -ListDevices` prints them):
+A real-time voice changer for gaming on Windows. It converts your headset mic into another voice (by default `ex02`, a natural English female voice trained for this project; two more trained voices, `ears-p033` and `ears-p105`, are in the Voice list) and hands the result to games as an ordinary microphone. It is set up for Overwatch (formerly Overwatch 2) voice chat, and it works with any app that records from the default Windows mic. Nothing is re-implemented: it assembles free tools (the official RVC realtime GUI, RVC voice models and the VB-CABLE virtual audio cable) and adds one small add-on for voice presets, two hotkeys and a Voice / Save settings / Mute cable row in the window. The signal chain, with the Windows WASAPI device names from the development PC (as `launch.bat -ListDevices` prints them):
 
 ```text
 Headset mic: Microphone (Chat-Audeze Maxwell), 48 kHz
@@ -19,8 +19,8 @@ Add-on (inside the GUI process): presets, voice switching, Save settings, conver
 |---|---|
 | Windows 11 | Developed on Windows 11 Pro. The scripts use the built-in Windows PowerShell, `curl.exe` and `tar.exe`. 7-Zip is optional: it unpacks faster, and without it `tar.exe` skips a few files with non-ASCII names that the engine doesn't need. |
 | NVIDIA GPU | The pinned engine is the NVIDIA build for cards older than the RTX 50 series. Developed on an RTX 4080 SUPER (16 GB). |
-| Disk space | About 25 GB free during setup: the 7.8 GB archive, about 15 GB of unpacked engine and 1.5 GB of VCTK voices (1.3 GB more for the optional `vctk-all-f`). You can delete the archive afterwards. The default voice `ex02` takes 2.4 GB more and is not downloaded: it comes from your backup, or a rebuild that needs about 50 GB free while it runs ([docs/custom-voice.md](docs/custom-voice.md)). |
-| RAM | `ex02` loads a 2.3 GB voice index, which takes about 4.5 GB of RAM while the voice changer runs. The VCTK voices need far less. |
+| Disk space | About 25 GB free during setup: the 7.8 GB archive, about 15 GB of unpacked engine and 1.5 GB of VCTK voices (1.3 GB more for the optional `vctk-all-f`). You can delete the archive afterwards. The custom voices are not downloaded and come from your backup or a rebuild ([docs/custom-voice.md](docs/custom-voice.md)): the default `ex02` takes 2.4 GB more (a rebuild needs about 50 GB free while it runs), `ears-p033` and `ears-p105` about 0.5 GB each. |
+| RAM | `ex02` loads a 2.3 GB voice index, which takes about 4.5 GB of RAM while the voice changer runs. `ears-p033` and `ears-p105` take about 0.8 GB each, the single-speaker VCTK voices less (the optional `vctk-all-f` about 2.5 GB). |
 | Headset mic | The defaults match the Audeze Maxwell boom mic. Another mic needs one edit in `config/audio.json` (see [Troubleshooting](#troubleshooting)). |
 | VB-CABLE | Free virtual audio cable (donationware, no account). You install it in Quick start step 3. |
 | ASCII-only folder | The RVC GUI rejects model paths with non-ASCII characters, so keep this repo in a folder whose full path is plain ASCII. |
@@ -33,7 +33,7 @@ The setup the project owner uses and currently prefers (last updated 2026-09-29)
 | Where | Setting | Value |
 |---|---|---|
 | Voice | Preset | `ex02` (the default; `launch.bat` with no options) |
-| RVC window | Pitch settings | 12 (anything from +12 to +18 also sounds good; the slider goes from -24 to +24) |
+| RVC window | Pitch settings | 12 for `ex02` (anything from +12 to +18 also sounds good); per voice below. The slider goes from -24 to +24. |
 | | Gender factor / voice thickness | 0 |
 | | Index Rate | 0.5 |
 | | loudness factor | 0.75 |
@@ -47,9 +47,17 @@ The setup the project owner uses and currently prefers (last updated 2026-09-29)
 | Overwatch | Voice chat devices / mode | Default Devices / Open Mic; cap the frame rate below the refresh rate |
 | NVIDIA Control Panel | Power management mode for `engine\runtime\python.exe` | Prefer maximum performance |
 
+The voices the owner uses, all in the **Voice** list (or `launch.bat -Preset <name>`), with the same values as the table except the pitch:
+
+| Voice (preset) | What it is | Pitch settings |
+|---|---|---|
+| `ex02` (default) | English female, trained on Expresso | 12 |
+| `ears-p033` | Female, low register, trained on EARS | 7 |
+| `ears-p105` | Male, close to the owner's own voice, trained on EARS | 0 |
+
 The presets already hold all the RVC-window values: `launch.bat` applies them, so there's nothing to set by hand in that window. **Reference point:** `ex02-reference` (in the Voice list, or `launch.bat -Preset ex02-reference`) keeps the original tuned setup unchanged, with Sample length 0.75 and about 1.1 s of delay (estimated), so you can always compare against it. It's locked: **Save settings** never writes to it (the status shows `Reference is locked`).
 
-`ex02` isn't downloadable. Without a backup of `models\ex02`, use `vctk-p231` with the same RVC-window values, or rebuild `ex02` ([docs/custom-voice.md](docs/custom-voice.md)).
+`ex02`, `ears-p033` and `ears-p105` aren't downloadable: back up `models\ex02`, `models\ears-p033` and `models\ears-p105` ([how](docs/custom-voice.md#back-it-up)). Without a backup of `models\ex02`, use `vctk-p231` with the same RVC-window values, or rebuild `ex02` ([docs/custom-voice.md](docs/custom-voice.md)).
 
 ## Quick start
 
@@ -67,7 +75,7 @@ Run the commands from the repo folder in a normal (not administrator) terminal. 
    powershell -ExecutionPolicy Bypass -File scripts\get-models.ps1
    ```
 
-   The default voice `ex02` can't be downloaded: restore `models\ex02` from your backup, or rebuild it ([docs/custom-voice.md](docs/custom-voice.md#rebuild-it)). Until then, start a VCTK voice with `launch.bat -Preset vctk-p231`.
+   The default voice `ex02` and the EARS voices `ears-p033` and `ears-p105` can't be downloaded: restore `models\ex02` and `models\ears-*` from your backup, or rebuild them ([docs/custom-voice.md](docs/custom-voice.md#rebuild-it)). Until then, start a VCTK voice with `launch.bat -Preset vctk-p231`.
 
 3. **Set up Windows audio** once with [docs/windows-audio.md](docs/windows-audio.md): install VB-CABLE (the only admin step), set 48000 Hz, set the default devices, and check them with `launch.bat -ListDevices`. The VB-CABLE installer may make CABLE Input the default playback device; fix that right away with [Right after installing](docs/windows-audio.md#right-after-installing-fix-the-default-devices).
 4. **Set up Overwatch** with [docs/overwatch.md](docs/overwatch.md).
@@ -144,7 +152,7 @@ Pick a voice in the **Voice** list at the bottom of the RVC window:
 - A preset with missing files or bad values is refused (`Can't load <id>` and a beep) and nothing changes.
 - The pick isn't saved: the next plain `launch.bat` starts `ex02` again.
 
-Or start with a preset: `launch.bat -Preset vctk-p238`. `launch.bat -ListPresets` lists all nine: `ex02` (default), `vctk-p231`, `vctk-p238`, `vctk-p249`, `vctk-p262`, `vctk-p280`, `vctk-p323`, `vctk-p340` and `vctk-all-f`.
+Or start with a preset: `launch.bat -Preset ears-p105`. `launch.bat -ListPresets` lists them all: `ex02` (default), `ex02-reference` (the original `ex02` setup, locked), `ears-p033`, `ears-p105`, `vctk-p231`, `vctk-p238`, `vctk-p249`, `vctk-p262`, `vctk-p280`, `vctk-p323`, `vctk-p340` and `vctk-all-f`.
 
 For more voices and their licenses, see [docs/voices-and-licenses.md](docs/voices-and-licenses.md).
 
@@ -162,7 +170,7 @@ To make your own preset:
 | `config/hotkey.json` | The two hotkey combos, method, poll interval and cue sounds ([The hotkeys](#the-hotkeys)). | Yes. |
 | `config/presets/*.json` | One file per voice: `label`, `voice`, optionally `"locked": true` (Save settings leaves it alone) and `settings` (model paths, pitch, formant, index rate, loudness factor and pitch algorithm). | Yes, or with **Save settings**. Copy one to make a new preset. |
 | `config/engine.lock.json` | The pinned engine download: URL, Hugging Face revision, size, SHA256 and required files. | No. |
-| `config/models.json` | The pinned VCTK voice downloads: revision, per-file size and SHA256, license and attribution line. `ex02` isn't in it. | Only to add voices ([how](docs/voices-and-licenses.md#add-another-voice)). |
+| `config/models.json` | The pinned VCTK voice downloads: revision, per-file size and SHA256, license and attribution line. The custom voices (`ex02`, `ears-*`) aren't in it. | Only to add voices ([how](docs/voices-and-licenses.md#add-another-voice)). |
 
 The launcher rewrites `engine\configs\config.json` at every start: the engine's config first, then the `config/audio.json` settings, then the preset's settings. Don't edit that file by hand.
 
@@ -173,7 +181,7 @@ The launcher rewrites `engine\configs\config.json` at every start: the engine's 
 - **`No Windows WASAPI input device matches ...`, `... output device matches ...` or `2 Windows WASAPI ... devices match ...`:** connect the headset or install VB-CABLE; for another mic or cable, put a substring of its name from `launch.bat -ListDevices` in `input_device_match` or `output_device_match` in `config/audio.json` ([docs/windows-audio.md](docs/windows-audio.md#troubleshooting)).
 - **`Sample rates differ: ...`:** set the mic and both sides of the cable to 48000 Hz, then relaunch ([docs/windows-audio.md](docs/windows-audio.md#2-set-every-device-in-the-chain-to-48000-hz)).
 - **`The RVC engine is not installed`:** run `scripts\install-engine.ps1`. If it says `engine exists but is incomplete`, rename or delete `engine\`, then run it again.
-- **`The voice files for preset '...' are missing`:** for a VCTK voice, run the `get-models.ps1 -Voice ...` command the message shows. For `ex02`, restore `models\ex02` from your backup or rebuild it ([docs/custom-voice.md](docs/custom-voice.md#rebuild-it)), or use `launch.bat -Preset vctk-p231`.
+- **`The voice files for preset '...' are missing`:** for a VCTK voice, run the `get-models.ps1 -Voice ...` command the message shows. For `ex02`, `ears-p033` or `ears-p105`, restore its `models\` folder from your backup or rebuild it ([docs/custom-voice.md](docs/custom-voice.md#rebuild-it)), or use `launch.bat -Preset vctk-p231`.
 - **`Can't load <id>` or `Save failed` in the window:** the console line starting with `[voice]` or `[save]` says why.
 - **A download stopped or failed:** run the same script again; it resumes and skips files that already verify. If the error says to delete a file (a full-size file whose SHA256 doesn't match), delete it first. If it says to run without `-SkipDownload`, drop that switch.
 - **`pth_path has non-ASCII characters, which the RVC GUI rejects`:** move the repo to a folder whose full path is plain ASCII, for example `C:\Tools\Gaming-Voice-Changer`. A non-ASCII Windows user name causes this too if the repo is in your user folder.
@@ -192,13 +200,13 @@ The launcher rewrites `engine\configs\config.json` at every start: the engine's 
 | [docs/overwatch.md](docs/overwatch.md) | Voice chat devices, Open Mic, the push-to-talk tail, frame-rate cap, Reflex, the in-game hotkey check. |
 | [docs/tuning.md](docs/tuning.md) | Starting values, what each control does, the delay, the pitch formula, voice technique, the tuning loop, keeping changes. |
 | [docs/voices-and-licenses.md](docs/voices-and-licenses.md) | The voices and their licenses, adding voices, optional anime-style extras and their rules, excluded sources. |
-| [docs/custom-voice.md](docs/custom-voice.md) | The default voice `ex02`: what it is, backing it up, how it was made, how to rebuild it, the dev tools. |
+| [docs/custom-voice.md](docs/custom-voice.md) | The custom voices `ex02`, `ears-p033` and `ears-p105`: what they are, backing them up, how they were made, how to rebuild them, the dev tools. |
 | [docs/perf-testing.md](docs/perf-testing.md) | Baseline and acceptance runs, delay measurement with `scripts\measure-delay.ps1`, offline test, results tables. |
 | [docs/landscape.md](docs/landscape.md) | Dated log of alternatives checked against this stack, and what would change each verdict. Re-check periodically. |
 | [docs/PLAN.md](docs/PLAN.md) | Design decisions and the fallbacks (VCClient, CPU-only Beatrice v2). |
-| [CREDITS.md](CREDITS.md) | Attribution for the engine, the voices, the `ex02` training data and pretrain, and the tools. |
+| [CREDITS.md](CREDITS.md) | Attribution for the engine, the voices, the custom voices' training data (Expresso, EARS) and pretrain, and the tools. |
 
-If you share recordings made with the voices, keep the attribution line from [CREDITS.md](CREDITS.md). `ex02` is for personal, non-commercial use only, because its training data (Expresso) is CC BY-NC 4.0. The rules for every voice, including game moderation, are in [docs/voices-and-licenses.md](docs/voices-and-licenses.md#rules-that-apply-to-every-voice).
+If you share recordings made with the voices, keep the attribution line from [CREDITS.md](CREDITS.md). `ex02`, `ears-p033` and `ears-p105` are for personal, non-commercial use only, because their training data (Expresso, EARS) is CC BY-NC 4.0. The rules for every voice, including game moderation, are in [docs/voices-and-licenses.md](docs/voices-and-licenses.md#rules-that-apply-to-every-voice).
 
 ## Layout
 
@@ -213,16 +221,17 @@ tools/test_scripts.py          tests for scripts\ (run with python; local fixtur
 tools/rt_render.py             renders a WAV through the realtime engine path offline, for A/B tests of settings and voices
 tools/artifact_scan.py         counts clicks, spikes, dropouts, block-edge artifacts and pitch wobble in a recording
 tools/expresso_prep.py         builds the ex02 training folder from the Expresso tar
+tools/ears_prep.py             builds the ears-p033 / ears-p105 training folders from the EARS zips
 tools/build_full_index.py      builds the full retrieval index for a trained voice
-docs/                          setup, tuning, licenses, the custom voice, performance testing, plan
+docs/                          setup, tuning, licenses, the custom voices, performance testing, plan
 CREDITS.md                     attribution
-engine/ models/ downloads/ captures/   downloaded or generated, git-ignored (back up models\ex02)
+engine/ models/ downloads/ captures/   downloaded or generated, git-ignored (back up models\ex02 and models\ears-*)
 ```
 
 ## Offline and free
 
 - No accounts, no subscriptions, nothing to buy.
-- The only downloads are one-time: the engine from the public Hugging Face repo `lj1995/VoiceConversionWebUI` and the VCTK voices from `Nekochu/RVC-VCTK_Voice-sample` (both pinned by revision and SHA256), and VB-CABLE from vb-audio.com. Only a rebuild of `ex02` also downloads, once, the Expresso dataset and the TITAN pretrain ([docs/custom-voice.md](docs/custom-voice.md#rebuild-it)).
+- The only downloads are one-time: the engine from the public Hugging Face repo `lj1995/VoiceConversionWebUI` and the VCTK voices from `Nekochu/RVC-VCTK_Voice-sample` (both pinned by revision and SHA256), and VB-CABLE from vb-audio.com. Only a rebuild of a custom voice also downloads, once, its dataset (Expresso or EARS) and the TITAN pretrain ([docs/custom-voice.md](docs/custom-voice.md#rebuild-it)).
 - VB-CABLE is donationware: free to use, with no account ([license details](docs/windows-audio.md#1-install-vb-cable)).
 - After setup, nothing is fetched at runtime: HuBERT, rmvpe and fcpe all ship inside the engine package ([offline test](docs/perf-testing.md#6-offline-test)).
 - Commercial voice-changer apps and their virtual devices are not used ([why](docs/windows-audio.md#why-not-other-voice-changers-devices)).

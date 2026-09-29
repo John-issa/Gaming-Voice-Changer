@@ -1,0 +1,13 @@
+{
+  "label": "EARS p033 - custom female voice (low register)",
+  "voice": "ears-p033",
+  "settings": {
+    "pth_path": "models/ears-p033/ears-p033_e200_s27000.pth",
+    "index_path": "models/ears-p033/added_IVF3463_Flat_nprobe_4_ears-p033full_v2.index",
+    "pitch": 7,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.75,
+    "f0method": "rmvpe"
+  }
+}

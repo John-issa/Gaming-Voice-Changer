@@ -6,9 +6,9 @@ This is a dated log of what our setup has been compared against, so later checks
 
 ## Current stack
 - **Engine:** official RVC WebUI integrated package 2.3.260718 (2026-07-21, MIT), running `realtime_gui.py` with CUDA Graph and FP16, plus our add-on for hotkeys, presets, mute and save. As of 2026-09-27 the local realtime files are byte-identical to upstream main.
-- **Voice:** custom RVC v2 48 kHz model trained on ~4.5 h of Meta Expresso speaker ex02. Base TITAN-Medium 48k, 200 epochs, rmvpe pitch, ContentVec embedder, HiFi-GAN-NSF vocoder, full faiss index (stored nprobe 4).
+- **Voices:** `ex02` (default), a custom RVC v2 48 kHz model trained on ~4.5 h of Meta Expresso speaker ex02; since 2026-09-29 also `ears-p033` (female, low register) and `ears-p105` (male), each trained on ~1 h of one EARS speaker (TITAN-Medium 48k, 400 epochs, e200 picked). ex02 details: Base TITAN-Medium 48k, 200 epochs, rmvpe pitch, ContentVec embedder, HiFi-GAN-NSF vocoder, full faiss index (stored nprobe 4).
 - **Audio chain:** headset mic -> RVC -> VB-CABLE -> Overwatch voice chat, on Windows 11 with an RTX 4080 SUPER, Ryzen 9 9950X and 64 GB RAM.
-- **Settings:** block 0.75 s, fade 0.15, extra 4.0, WASAPI shared mode. The measured end-to-end delay is ~3 s.
+- **Settings:** block 0.75 s, fade 0.15, extra 4.0, WASAPI shared mode, as of this check. Since 2026-09-29 the default is block 0.25 (about 0.6 s estimated; the ~3 s figure here was the GUI's buffer-capacity formula, not a measurement). `ex02-reference` keeps 0.75.
 
 ## Check 2026-09-27
 

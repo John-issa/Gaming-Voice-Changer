@@ -4,13 +4,15 @@ Every voice this project uses is free, needs no account, and comes from sources 
 
 ## Default voices
 
-The default preset is `ex02`, a custom voice trained in this repo from the Expresso dataset ([custom-voice.md](custom-voice.md)). It can't be downloaded, so [back it up](custom-voice.md#back-it-up).
+The default preset is `ex02`, a custom voice trained in this repo from the Expresso dataset ([custom-voice.md](custom-voice.md)). Two more custom voices, `ears-p033` (female, low register) and `ears-p105` (male), were trained the same way from the EARS dataset ([custom-voice.md](custom-voice.md#the-ears-voices-ears-p033-and-ears-p105)). None of the three can be downloaded, so [back them up](custom-voice.md#back-it-up).
 
 `scripts\get-models.ps1` downloads seven English-speaking female VCTK speakers ("English" is the language, not an accent), about 1.5 GB. A blend of all of them, `vctk-all-f`, is opt-in because its index alone is 1.3 GB. Every preset starts with "Index Rate" 0.5 ([tuning.md](tuning.md#index-rate)). You pick one with `launch.bat -Preset <name>` or from the Voice list at the bottom of the window ([Switching voices](../README.md#switching-voices)).
 
 | Preset | Files in `models\<preset>\` | Size |
 |---|---|---|
 | `ex02` (the default preset; not downloadable) | `ex02t48_e200_s133600.pth`, `added_IVF13764_Flat_nprobe_4_ex02t48full_v2.index` | 2.38 GB |
+| `ears-p033` (not downloadable) | `ears-p033_e200_s27000.pth`, `added_IVF3463_Flat_nprobe_4_ears-p033full_v2.index` | 0.48 GB |
+| `ears-p105` (not downloadable) | `ears-p105_e200_s25400.pth`, `added_IVF3085_Flat_nprobe_4_ears-p105full_v2.index` | 0.44 GB |
 | `vctk-p231` | `Fp231rmvpe.pth`, `added_IVF1216_Flat_nprobe_1_Fp231rmvpe_v2.index` | 205 MB |
 | `vctk-p238` | `Fp238rmvpe.pth`, `added_IVF1617_Flat_nprobe_1_Fp238rmvpe_v2.index` | 254 MB |
 | `vctk-p249` | `Fp249rmvpe.pth`, `added_IVF1104_Flat_nprobe_1_Fp249rmvpe_v2.index` | 191 MB |
@@ -26,7 +28,7 @@ powershell -ExecutionPolicy Bypass -File scripts\get-models.ps1
 
 - `-List` prints the voices. `-Voice vctk-p238,vctk-all-f` fetches only those. `-IncludeBeatrice` also fetches each voice's optional Beatrice v2 zip (about 19 MB), which only the CPU-only fallback (Plan C in [PLAN.md](PLAN.md)) uses.
 - Every file is pinned by revision, size and SHA256 in `config/models.json`.
-- The VCTK models are RVC v2, trained by Nekochu for 250 epochs (the All_F blend 300) in 08/2023 with the Mangio fork of the RVC WebUI. The presets use the builds trained with `rmvpe` pitch extraction (each speaker's `rmvpe/` subfolder on Hugging Face), the same algorithm the GUI uses live (`"f0method": "rmvpe"`). That older RVC doesn't interpolate the pitch of unvoiced frames in training; ex02 was trained in the bundled engine, so its training and live inference match.
+- The VCTK models are RVC v2, trained by Nekochu for 250 epochs (the All_F blend 300) in 08/2023 with the Mangio fork of the RVC WebUI. The presets use the builds trained with `rmvpe` pitch extraction (each speaker's `rmvpe/` subfolder on Hugging Face), the same algorithm the GUI uses live (`"f0method": "rmvpe"`). That older RVC doesn't interpolate the pitch of unvoiced frames in training; the custom voices (ex02, ears-p033, ears-p105) were trained in the bundled engine, so their training and live inference match.
 
 ## License chain of the default voices
 
@@ -35,10 +37,13 @@ powershell -ExecutionPolicy Bypass -File scripts\get-models.ps1
 | ex02 | Training data | Expresso dataset (Meta AI, 2023), speaker ex02 | CC BY-NC 4.0 | [Expresso](https://speechbot.github.io/expresso/), [dataset README](https://github.com/facebookresearch/textlesslib/tree/main/examples/expresso/dataset), [CC BY-NC 4.0 legal code](https://creativecommons.org/licenses/by-nc/4.0/legalcode.en) |
 | ex02 | Pretrained base | TITAN-Medium 48k by blaise-tk, fine-tuned from the official RVC v2 pretrain on Expresso | Apache-2.0 | [Model card](https://huggingface.co/blaise-tk/TITAN) |
 | ex02 | Voice model | Trained in this repo ([custom-voice.md](custom-voice.md#how-it-was-made)); not redistributed | Personal, non-commercial use (follows the data) | |
+| ears-p033, ears-p105 | Training data | EARS dataset (Richter et al., Interspeech 2024), speakers p033 and p105 | CC BY-NC 4.0, attribution to the authors required | [EARS](https://sp-uhh.github.io/ears_dataset/), [dataset repo](https://github.com/facebookresearch/ears_dataset), [CC BY-NC 4.0 legal code](https://creativecommons.org/licenses/by-nc/4.0/legalcode.en) |
+| ears-p033, ears-p105 | Pretrained base | TITAN-Medium 48k by blaise-tk (as ex02) | Apache-2.0 | [Model card](https://huggingface.co/blaise-tk/TITAN) |
+| ears-p033, ears-p105 | Voice models | Trained in this repo ([custom-voice.md](custom-voice.md#the-ears-voices-ears-p033-and-ears-p105)); not redistributed | Personal, non-commercial use (follows the data) | |
 | VCTK | Voice models | Nekochu/RVC-VCTK_Voice-sample (Hugging Face) | Apache-2.0 (model card) | [Model card](https://huggingface.co/Nekochu/RVC-VCTK_Voice-sample) |
 | VCTK | Training data | CSTR VCTK Corpus 0.92, University of Edinburgh | CC BY 4.0 | [Edinburgh DataShare](https://datashare.ed.ac.uk/handle/10283/3443), [CC BY 4.0 legal code](https://creativecommons.org/licenses/by/4.0/legalcode.en) |
 
-Expresso's NC (non-commercial) term carries over to ex02: use it for yourself, not for anything that earns money. A monetized stream is a grey area. TITAN's weights are Apache-2.0, but TITAN was trained on Expresso too.
+Expresso's and EARS's NC (non-commercial) terms carry over to ex02, ears-p033 and ears-p105: use them for yourself, not for anything that earns money. A monetized stream is a grey area. TITAN's weights are Apache-2.0, but TITAN was trained on Expresso too.
 
 The Nekochu model card lists the VCTK dataset but says nothing about its license or attribution. This project credits the corpus anyway, because the models are built from its recordings.
 
@@ -56,14 +61,20 @@ For ex02 (this project's wording):
 Voice: ex02, trained on the Expresso dataset (Meta AI, CC BY-NC 4.0) from the TITAN-Medium pretrain by blaise-tk (Apache-2.0).
 ```
 
+For ears-p033 and ears-p105 (this project's wording):
+
+```
+Voices: ears-p033 and ears-p105, trained on the EARS dataset (Richter et al., Interspeech 2024; CC BY-NC 4.0) from the TITAN-Medium pretrain by blaise-tk (Apache-2.0).
+```
+
 Where they go:
 
-1. [CREDITS.md](../CREDITS.md), with the full VCTK and Expresso citations.
+1. [CREDITS.md](../CREDITS.md), with the full VCTK, Expresso and EARS citations.
 2. The end of every `get-models.ps1` run, which prints the VCTK line.
-3. Anything you publish that uses these voices (a video, a clip, a stream recording): put the line in the description. With ex02, only non-commercial ones.
-4. If you pass the VCTK model files on to someone, include the line and the Apache-2.0 license with them. ex02 is not passed on.
+3. Anything you publish that uses these voices (a video, a clip, a stream recording): put the line in the description. With ex02 and the EARS voices, only non-commercial ones.
+4. If you pass the VCTK model files on to someone, include the line and the Apache-2.0 license with them. The custom voices are not passed on.
 
-CC BY 4.0 and CC BY-NC 4.0 do not license publicity, privacy or similar personality rights (Section 2(b)(1) of both legal codes). The VCTK and Expresso speakers are real, anonymous people, so don't present a voice as a specific real person or claim to be one.
+CC BY 4.0 and CC BY-NC 4.0 do not license publicity, privacy or similar personality rights (Section 2(b)(1) of both legal codes). The VCTK, Expresso and EARS speakers are real, anonymous people, so don't present a voice as a specific real person or claim to be one.
 
 ## Add another voice
 
@@ -95,7 +106,7 @@ Every female speaker in the VCTK model repo's `F/` folder is already set up. To 
 
 ## Optional anime-style extras (opt-in)
 
-Two Japanese voice projects publish official, free RVC models. They are not in `config/models.json`, and the scripts never download them. Unlike ex02 and the VCTK voices, which ask only for attribution (and, for ex02, non-commercial use), both come with content rules.
+Two Japanese voice projects publish official, free RVC models. They are not in `config/models.json`, and the scripts never download them. Unlike the custom voices and the VCTK voices, which ask only for attribution (and, for the custom voices, non-commercial use), both come with content rules.
 
 ### Tsukuyomi-chan official RVC model (つくよみちゃん公式RVCモデル)
 
@@ -134,7 +145,7 @@ Competitive voice chat is where these rules bite:
 - Amitaro's voice must never pass as your own, so in a lobby you have to say it's Amitaro's RVC model (not just "a voice changer") whenever someone asks.
 - Tsukuyomi-chan requires a credit, and a voice chat lobby has no place to show it.
 
-Use ex02 or the VCTK presets for normal matches. Add an extra only if you can keep to its rules.
+Use the custom voices or the VCTK presets for normal matches. Add an extra only if you can keep to its rules.
 
 ### Add an extra manually
 
@@ -151,7 +162,7 @@ Use ex02 or the VCTK presets for normal matches. Add an extra only if you can ke
 
 | Source | Why it is not used |
 |---|---|
-| AISO voices | Pitch-less models: the pitch slider does nothing, and they need about 2 s chunks, well over the 0.75 s `block_time` this setup starts with. |
+| AISO voices | Pitch-less models: the pitch slider does nothing, and they need about 2 s chunks, far over the 0.25 s `block_time` this setup starts with. |
 | Real-person or character voices from unlicensed model-sharing sites | Nobody who owns the voice has granted a license to use it. |
 | Sample models bundled with VCClient | Licensed for use in VC Client only (the Tsukuyomi-chan project states this for its model). This project runs the RVC realtime GUI, not VCClient. |
 | Voices that need an account, a purchase or a subscription | Project rule: everything must be a free download with no account and must work offline. |

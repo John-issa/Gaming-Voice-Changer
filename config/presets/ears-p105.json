@@ -1,0 +1,13 @@
+{
+  "label": "EARS p105 - custom male voice",
+  "voice": "ears-p105",
+  "settings": {
+    "pth_path": "models/ears-p105/ears-p105_e200_s25400.pth",
+    "index_path": "models/ears-p105/added_IVF3085_Flat_nprobe_4_ears-p105full_v2.index",
+    "pitch": 0,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.75,
+    "f0method": "rmvpe"
+  }
+}

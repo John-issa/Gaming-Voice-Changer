@@ -67,25 +67,25 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
 | T5 | In-game acceptance (plan Step 5) with the user: Overwatch settings, FrameView runs, delay measurement (VB-CABLE and the Maxwell are in place) | User + Worker-1 | blocked (user) |
 | T14 | Listening samples of candidate voices (`captures\voice-options\`) | Worker-1 | done (user picked EARS p033, female, low register, +6.9 st from the user; and EARS p105, male, +0.0 st) |
 
-### Next (planned 2026-09-28, not started: waiting for the user's go)
+### Round 2 (planned 2026-09-28)
 
 **Daytime (no overnight GPU run needed)**
 
 | # | Task | Notes |
 |---|---|---|
-| T9 | Fair block-size A/B, offline: block 0.25/0.35/0.5/0.75 with fade 0.15, rms 0.75, pitch 12 held fixed; then extra 2.5 vs 4.0 | The user listens; picks the lowest delay that stays smooth |
-| T10 | Pitch A/B, offline: +12/+14/+16/+18 and target-aware log-f0 mapping (`rt_render --f0-map`, partly written) | The user listens; mapping becomes a preset option only if it wins |
-| T11 | Decoupled audio I/O in the add-on (est. ~3 s -> ~1.1-1.3 s, same sound): design review first, then build + tests + smoke test | Must include a bounded-age reset; must coexist with Mute and auto-restart |
-| T12 | EARS training prep for p033 and p105: a prep tool (like `tools/expresso_prep.py`) that builds each speaker's training folder from `downloads\ears\` (all styles, laughs/non-verbal capped), then WebUI slicing, f0, features and the index | CPU + short GPU; the data is already downloaded |
-| T13 | Base-model choice for ~1 h speakers: TITAN-Medium 48k (as ex02) vs the official 48k pretrain; the epoch count for ~1 h of data (likely more epochs than ex02's 200, with frequent saves) | Decide before the first overnight run |
+| T9 | Fair block-size A/B, offline: block 0.25/0.35/0.5/0.75 with fade 0.15, rms 0.75, pitch 12 held fixed; then extra 2.5 vs 4.0 | Done: 0.25 sounds the same as 0.75 to the user and is now the default (`config/audio.json`); `ex02-reference` keeps 0.75 |
+| T10 | Pitch A/B, offline: +12/+14/+16/+18 and target-aware log-f0 mapping (`rt_render --f0-map`, partly written) | Done: +12 to +18 all sound good (the slider now reaches ±24); the mapping was rejected (odd on loud parts) and removed |
+| T11 | Decoupled audio I/O in the add-on (est. ~3 s -> ~1.1-1.3 s, same sound): design review first, then build + tests + smoke test | Parked: the stock stream's real delay measured about 1.1 blocks + 60 ms (the ~3 s was the GUI's formula), so T11 would mainly stop the delay from ratcheting up after slow blocks. Revisit after measuring the real chain fresh and after a gaming session |
+| T12 | EARS training prep for p033 and p105: a prep tool (like `tools/expresso_prep.py`) that builds each speaker's training folder from `downloads\ears\` (all styles, laughs/non-verbal capped), then WebUI slicing, f0, features and the index | Done: `tools/ears_prep.py`; 57.2 min (p033) and 54.7 min (p105) of speech |
+| T13 | Base-model choice for ~1 h speakers: TITAN-Medium 48k (as ex02) vs the official 48k pretrain; the epoch count for ~1 h of data (likely more epochs than ex02's 200, with frequent saves) | Done: TITAN-Medium 48k, 400 epochs, a save every 25 |
 
-**Overnight (one voice per night; the GPU is busy all night)**
+**Overnight (both voices ran back-to-back in one night; the GPU was busy the whole time)**
 
 | # | Task | Notes |
 |---|---|---|
-| T15 | Train `ears-p033` (female, low register): expected +7 semitones from the user's voice instead of +18 | Save candidates for a morning audition; the user picks the checkpoint |
-| T16 | Train `ears-p105` (male, the user's own range, ~0 st) | Same flow |
-| T17 | After each pick: full index, final preset (`config/presets/ears-p033.json`, `ears-p105.json`), shown in the in-app Voice list; clean the training files | Back up `models\` afterwards |
+| T15 | Train `ears-p033` (female, low register): expected +7 semitones from the user's voice instead of +18 | Done 2026-09-29: 400 epochs (~3.5 h); e200 picked after an offline audition of e100-e400 |
+| T16 | Train `ears-p105` (male, the user's own range, ~0 st) | Done 2026-09-29: same flow, e200 picked |
+| T17 | After each pick: full index, final preset (`config/presets/ears-p033.json`, `ears-p105.json`), shown in the in-app Voice list; clean the training files | Done 2026-09-29: e200 + full index in `models\ears-p033\` and `models\ears-p105\`, presets `ears-p033` (pitch 7) and `ears-p105` (pitch 0). The other saves, the training logs and the untracked `ears-*-eNNN` audition presets stay until the user settles on the pick. Back up `models\ears-*` |
 
 **Future (after the voices are settled)**
 

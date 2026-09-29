@@ -12,17 +12,17 @@ Tune on the desktop first, then check the result in the game.
 
 ## Starting values
 
-The launcher merges two files at every start: `config/audio.json` (timing, gate and audio mode, shared by every preset), then `config/presets/<id>.json` (one voice; a key there overrides `config/audio.json`). Where the voices differ, the table shows ex02 (the default) first, then the VCTK presets.
+The launcher merges two files at every start: `config/audio.json` (timing, gate and audio mode, shared by every preset), then `config/presets/<id>.json` (one voice; a key there overrides `config/audio.json`). Where the voices differ, the table shows ex02 (the default) first, then the EARS voices, then the VCTK presets.
 
 | GUI label | Start | JSON key | File | A change applies |
 |---|---|---|---|---|
-| "Pitch settings" | +12 (ex02), +10 (VCTK) | `pitch` | preset | live |
+| "Pitch settings" | +12 (ex02), +7 (ears-p033), 0 (ears-p105), +10 (VCTK) | `pitch` | preset | live |
 | "Gender factor / voice thickness" | 0.0 | `formant` | preset | live |
 | "Index Rate" | 0.5 | `index_rate` | preset | live |
-| "loudness factor" | 0.75 (ex02), 0.5 (VCTK) | `rms_mix_rate` | preset | live |
+| "loudness factor" | 0.75 (ex02, EARS), 0.5 (VCTK) | `rms_mix_rate` | preset | live |
 | "pitch detection algorithm" | rmvpe | `f0method` | preset | live |
 | "Response threshold" | -60 (gate off) | `threhold` (the engine's spelling) | audio.json | live |
-| "Sample length" | 0.75 | `block_time` | audio.json | restart (automatic) |
+| "Sample length" | 0.25 (`ex02-reference`: 0.75) | `block_time` | audio.json | restart (automatic) |
 | "Fade length" | 0.15 | `crossfade_length` | audio.json | restart (automatic) |
 | "Extra inference time" | 4.0 | `extra_time` | audio.json | restart (automatic) |
 | "Use device sample rate" | selected | `sr_type`: `"sr_device"` | audio.json | restart; leave it |
@@ -41,7 +41,7 @@ Keep "Use device sample rate" selected. In WASAPI shared mode the stream runs at
 
 ## What each control does
 
-- **"Pitch settings"** (-16 to +16, whole semitones): the pitch of the converted voice. The main control for a male-to-female change.
+- **"Pitch settings"** (-24 to +24, whole semitones; the add-on widens the stock -16 to +16): the pitch of the converted voice. The main control for a male-to-female change.
 - **"Gender factor / voice thickness"** (-2 to +2, steps of 0.05): moves the resonances that make a voice sound bigger or smaller, without changing its pitch.
 - **"Index Rate"** (0 to 1): how much of the voice's `.index` file is mixed in. Higher pulls the timbre closer to the target speaker.
 - **"loudness factor"** (0 to 1): at 1 the converted voice keeps the model's own loudness; at 0 it copies your loudness moment to moment. Near 0, quiet parts (breaths, noise between words) get boosted up to 15-20x and turn into spikes, so keep it at 0.5 or above.
@@ -63,7 +63,7 @@ F0 is the base pitch of your speaking voice, in Hz. Round to a whole number, bec
 
 If you don't know your F0, tune by ear:
 
-1. Start at the preset value (+12 for ex02, +10 for the VCTK voices) and try +10 to +14, one step at a time.
+1. Start at the preset value (+12 for ex02, +7 for ears-p033, 0 for ears-p105, +10 for the VCTK voices) and try a step or two either side, one step at a time.
 2. Go down if the voice sounds squeaky or cartoonish; go up if it still sounds like a low voice.
 3. If the pitch is right but the voice still sounds heavy or male, try the formant before adding more pitch.
 
