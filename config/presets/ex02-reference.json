@@ -1,0 +1,17 @@
+{
+  "label": "ex02 reference - original tuned setup (~3 s delay), keep as is",
+  "voice": "ex02",
+  "settings": {
+    "pth_path": "models/ex02/ex02t48_e200_s133600.pth",
+    "index_path": "models/ex02/added_IVF13764_Flat_nprobe_4_ex02t48full_v2.index",
+    "pitch": 12,
+    "formant": 0.0,
+    "index_rate": 0.5,
+    "rms_mix_rate": 0.75,
+    "f0method": "rmvpe",
+    "threhold": -60,
+    "block_time": 0.75,
+    "crossfade_length": 0.15,
+    "extra_time": 4.0
+  }
+}
