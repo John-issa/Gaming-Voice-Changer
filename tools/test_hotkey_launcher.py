@@ -1270,6 +1270,32 @@ class ExtrasTest(TempDirTest):
         self.assertIn("nothing written", self.out.getvalue())
         self.assertEqual(self.alerts, [1])
 
+    def test_locked_preset_refuses_save_but_still_switches(self):
+        preset = read_json(self.preset_path("ex02"))
+        preset["locked"] = True
+        write_json(self.preset_path("ex02"), preset)
+        paths = (self.preset_path("ex02"), os.path.join(self.tmp, "config", "audio.json"))
+        before = [read_bytes(p) for p in paths]
+        stamps = [os.stat(p).st_mtime_ns for p in paths]
+        window = self.window([ax.SAVE_KEY, "pitch", (ax.PRESET_KEY, self.extras.display("vctk-p231")), "pitch",
+                              (ax.PRESET_KEY, self.extras.display("ex02")), "pitch"], pitch=18.0, block_time=0.9)
+        self.assertEqual(window.read()[0], "pitch")
+        self.assertEqual([read_bytes(p) for p in paths], before)      # neither the voice nor the timing
+        self.assertEqual([os.stat(p).st_mtime_ns for p in paths], stamps)
+        self.assertEqual(window.status(), "Reference is locked")
+        self.assertIn("ex02 is locked", self.out.getvalue())
+        self.assertEqual(self.alerts, [])
+        self.assertEqual(window.read()[0], "pitch")                     # switching away still works...
+        self.assertEqual(self.extras.active, "vctk-p231")
+        self.assertEqual(window["pitch"].value, read_json(self.preset_path("vctk-p231"))["settings"]["pitch"])
+        self.assertEqual(window.read()[0], "pitch")                     # ...and back to the locked one
+        self.assertEqual(self.extras.active, "ex02")
+        self.assertEqual(window["block_time"].value, self.extras.load_target("ex02")["block_time"])
+
+    def test_shipped_reference_preset_is_locked(self):
+        self.assertIs(read_json(os.path.join(REPO, "config", "presets", "ex02-reference.json")).get("locked"), True)
+        self.assertNotIn("locked", read_json(os.path.join(REPO, "config", "presets", "ex02.json")))
+
     def test_dump_json_reproduces_every_shipped_config_file(self):
         folder = os.path.join(REPO, "config")
         paths = [os.path.join(folder, "audio.json"), os.path.join(folder, "hotkey.json")]
@@ -1412,6 +1438,48 @@ class ExtrasTest(TempDirTest):
         self.assertIn(self.extras.display("ex02"), row[1][1])
         self.assertIn(self.extras.display("vctk-p231"), row[1][1])
         self.assertEqual(popup, [["ok"]])
+
+    def test_pitch_slider_is_widened_in_the_rvc_window_only(self):
+        class Slider:
+            def __init__(self, key, rng):
+                self.Key, self.Range = key, rng
+
+        class Frame:  # FreeSimpleGUI Frames and Columns keep their layout in .Rows
+            def __init__(self, rows):
+                self.Rows = rows
+
+        made = []
+
+        class Window:
+            def __init__(self, title, layout=None, finalize=False):
+                made.append(layout)
+
+        sg = types.SimpleNamespace(Window=Window, Text=lambda *a, **k: None, Combo=lambda *a, **k: None,
+                                   Button=lambda *a, **k: None, Checkbox=lambda *a, **k: None)
+        ax.patch_layout(sg, self.extras)
+        pitch, formant, other = Slider("pitch", (-16, 16)), Slider("formant", (-2, 2)), Slider("pitch", (-16, 16))
+        sg.Window(ax.GUI_TITLE, layout=[[Frame([[Frame([[pitch], [formant]])]])]])
+        sg.Window("popup", layout=[[other]])
+        self.assertEqual(pitch.Range, ax.PITCH_RANGE)
+        self.assertLessEqual(ax.PITCH_RANGE[0], -18)
+        self.assertGreaterEqual(ax.PITCH_RANGE[1], 18)
+        self.assertEqual(formant.Range, (-2, 2))
+        self.assertEqual(other.Range, (-16, 16))
+        self.assertEqual(len(made[0]), 2)                              # the extras row is still added
+
+    def test_missing_pitch_slider_keeps_the_stock_window(self):
+        made = []
+
+        class Window:
+            def __init__(self, title, layout=None, finalize=False):
+                made.append(layout)
+
+        sg = types.SimpleNamespace(Window=Window, Text=lambda *a, **k: None, Combo=lambda *a, **k: None,
+                                   Button=lambda *a, **k: None, Checkbox=lambda *a, **k: None)
+        ax.patch_layout(sg, self.extras)
+        sg.Window(ax.GUI_TITLE, layout=[["stock"]])
+        self.assertEqual(made[0][0], ["stock"])
+        self.assertIn("could not widen the pitch slider", self.out.getvalue())
 
     def test_row_failure_keeps_the_stock_window(self):
         made = []

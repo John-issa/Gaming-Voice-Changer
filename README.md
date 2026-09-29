@@ -33,7 +33,7 @@ The setup the project owner uses and currently prefers (last updated 2026-09-29)
 | Where | Setting | Value |
 |---|---|---|
 | Voice | Preset | `ex02` (the default; `launch.bat` with no options) |
-| RVC window | Pitch settings | 12 (anything from +12 to +18 also sounds good) |
+| RVC window | Pitch settings | 12 (anything from +12 to +18 also sounds good; the slider goes from -24 to +24) |
 | | Gender factor / voice thickness | 0 |
 | | Index Rate | 0.5 |
 | | loudness factor | 0.75 |
@@ -47,7 +47,7 @@ The setup the project owner uses and currently prefers (last updated 2026-09-29)
 | Overwatch | Voice chat devices / mode | Default Devices / Open Mic; cap the frame rate below the refresh rate |
 | NVIDIA Control Panel | Power management mode for `engine\runtime\python.exe` | Prefer maximum performance |
 
-The presets already hold all the RVC-window values: `launch.bat` applies them, so there's nothing to set by hand in that window. **Reference point:** `ex02-reference` (in the Voice list, or `launch.bat -Preset ex02-reference`) keeps the original tuned setup unchanged, with Sample length 0.75 and about 3 s of delay, so you can always compare against it.
+The presets already hold all the RVC-window values: `launch.bat` applies them, so there's nothing to set by hand in that window. **Reference point:** `ex02-reference` (in the Voice list, or `launch.bat -Preset ex02-reference`) keeps the original tuned setup unchanged, with Sample length 0.75 and about 3 s of delay, so you can always compare against it. It's locked: **Save settings** never writes to it (the status shows `Reference is locked`).
 
 `ex02` isn't downloadable. Without a backup of `models\ex02`, use `vctk-p231` with the same RVC-window values, or rebuild `ex02` ([docs/custom-voice.md](docs/custom-voice.md)).
 
@@ -84,9 +84,9 @@ Run the commands from the repo folder in a normal (not administrator) terminal. 
 The add-on puts a row at the bottom of the RVC window:
 
 - **Voice:** switches to another preset ([Switching voices](#switching-voices)).
-- **Save settings:** writes the current Pitch, Formant, Index Rate, loudness factor and pitch algorithm to the active preset, and Response threshold, Sample length, Fade length and Extra inference time to `config/audio.json` (or to the preset, if it sets that key). It never writes model paths, devices or labels, and keeps the files' layout.
+- **Save settings:** writes the current Pitch, Formant, Index Rate, loudness factor and pitch algorithm to the active preset, and Response threshold, Sample length, Fade length and Extra inference time to `config/audio.json` (or to the preset, if it sets that key). It never writes model paths, devices or labels, and keeps the files' layout. A locked preset (`"locked": true`, like `ex02-reference`) is never written, not even the timing in `config/audio.json`.
 - **Mute cable:** silence on the cable, also on Ctrl+Alt+M ([The hotkeys](#the-hotkeys)).
-- **Status text:** what the last action did, for example `Saved`, `No changes`, `Save failed` (with a beep), `Muted` or `ex02 ready`.
+- **Status text:** what the last action did, for example `Saved`, `No changes`, `Save failed` (with a beep), `Reference is locked`, `Muted` or `ex02 ready`.
 
 Changes made in the window last only if you click **Save settings**; otherwise every launch re-applies `config/audio.json` and the preset ([Keep your changes](docs/tuning.md#keep-your-changes)). Some controls apply live and others restart the stream ([docs/tuning.md](docs/tuning.md#starting-values)). At the defaults (Sample length 0.25) the game hears you about 1.4 seconds after you speak; `ex02-reference` keeps the original 0.75 (about 3 s) for comparison ([why, and how to shorten it](docs/tuning.md#what-to-expect-from-the-delay)).
 
@@ -160,7 +160,7 @@ To make your own preset:
 |---|---|---|
 | `config/audio.json` | The host API (`Windows WASAPI`) and the substrings that pick your mic (`input_device_match`) and the cable (`output_device_match`). Also the settings every preset shares: `sg_wasapi_exclusive` ("Exclusive WASAPI device"), `sr_type`, `threhold` (noise gate), `block_time`, `crossfade_length` and `extra_time`. | Yes: devices by hand; **Save settings** writes the gate and timing values. |
 | `config/hotkey.json` | The two hotkey combos, method, poll interval and cue sounds ([The hotkeys](#the-hotkeys)). | Yes. |
-| `config/presets/*.json` | One file per voice: `label`, `voice` and `settings` (model paths, pitch, formant, index rate, loudness factor and pitch algorithm). | Yes, or with **Save settings**. Copy one to make a new preset. |
+| `config/presets/*.json` | One file per voice: `label`, `voice`, optionally `"locked": true` (Save settings leaves it alone) and `settings` (model paths, pitch, formant, index rate, loudness factor and pitch algorithm). | Yes, or with **Save settings**. Copy one to make a new preset. |
 | `config/engine.lock.json` | The pinned engine download: URL, Hugging Face revision, size, SHA256 and required files. | No. |
 | `config/models.json` | The pinned VCTK voice downloads: revision, per-file size and SHA256, license and attribution line. `ex02` isn't in it. | Only to add voices ([how](docs/voices-and-licenses.md#add-another-voice)). |
 

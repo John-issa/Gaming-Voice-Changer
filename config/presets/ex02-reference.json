@@ -1,6 +1,7 @@
 {
   "label": "ex02 reference - original tuned setup (~3 s delay), keep as is",
   "voice": "ex02",
+  "locked": true,
   "settings": {
     "pth_path": "models/ex02/ex02t48_e200_s133600.pth",
     "index_path": "models/ex02/added_IVF13764_Flat_nprobe_4_ex02t48full_v2.index",

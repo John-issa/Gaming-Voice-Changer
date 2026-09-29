@@ -9,9 +9,11 @@ event handler, which would stop the stream on any event it doesn't know.
   and, if conversion is running, restarts it through the stock stop/start.
 - Save settings: the current widget values go back into the active preset (pitch, formant,
   index_rate, rms_mix_rate, f0method) and config/audio.json (threhold and the timing sliders,
-  unless the preset overrides them). Written atomically, in the files' own layout.
+  unless the preset overrides them). Written atomically, in the files' own layout. A preset with
+  "locked": true (a reference setup) is never written: Save refuses and changes no file.
 - Mute: sounddevice.Stream is subclassed so the engine's callback runs as usual and its output is
   then zeroed: true silence on the cable in both vc and im mode, while the engine keeps running.
+- Pitch: the stock pitch slider (-16..16) gets PITCH_RANGE, so +18 and the like are reachable live.
 
 This module doesn't import hotkey_launcher (which runs as __main__); it gets load_json/model_path
 and the cue player passed in.
@@ -35,6 +37,7 @@ F0_KEYS = ("pm", "rmvpe", "fcpe")
 VOICE_KEYS = ("pitch", "formant", "index_rate", "rms_mix_rate")  # + f0method: saved to the preset
 TIMING_KEYS = ("threhold", "block_time", "crossfade_length", "extra_time")  # saved to audio.json
 INT_KEYS = ("pitch", "threhold")  # integer sliders (FreeSimpleGUI returns every slider as a float)
+PITCH_RANGE = (-24, 24)  # semitones; the stock slider stops at -16..16
 
 
 # ---------------------------------------------------------------- JSON files
@@ -344,6 +347,10 @@ class Extras:
         audio_path = os.path.join(self.repo, "config", "audio.json")
         try:
             preset = self.load_json(preset_path, f"Preset {self.active!r}")
+            if preset.get("locked") is True:
+                print(f"[save] {self.active} is locked (a reference setup): nothing written")
+                self.status(window, "Reference is locked")
+                return False
             audio = self.load_json(audio_path, "config/audio.json")
             new_preset = json.loads(json.dumps(preset))
             new_audio = json.loads(json.dumps(audio))
@@ -393,13 +400,37 @@ def el(window, key):
     return (getattr(window, "AllKeysDict", None) or {}).get(key)
 
 
+def find_element(rows, key):
+    """The element with this key in FreeSimpleGUI layout rows (Frames, Columns, Tabs nest rows of their own)."""
+    for row in rows or ():
+        for element in (row if isinstance(row, (list, tuple)) else (row,)):
+            if getattr(element, "Key", None) == key:
+                return element
+            found = find_element(getattr(element, "Rows", None), key)
+            if found is not None:
+                return found
+    return None
+
+
+def widen_pitch(layout):
+    """Give the stock pitch slider PITCH_RANGE; the window builds its Tk scale from .Range later."""
+    slider = find_element(layout, "pitch")
+    low, high = slider.Range
+    slider.Range = (min(low, PITCH_RANGE[0]), max(high, PITCH_RANGE[1]))
+
+
 def patch_layout(sg, extras):
-    """Add the extras row to the bottom of the RVC window; other windows (popups) are untouched."""
+    """Add the extras row to the bottom of the RVC window and widen its pitch slider; other windows
+    (popups) are untouched."""
     original = sg.Window.__init__
 
     def __init__(self, title=None, *args, **kwargs):
         ours = title == GUI_TITLE and isinstance(kwargs.get("layout"), list)
         if ours:
+            try:
+                widen_pitch(kwargs["layout"])
+            except Exception as e:
+                print(f"[extras] could not widen the pitch slider (stays -16..16): {e!r}")
             try:
                 kwargs["layout"] = kwargs["layout"] + [extras.row(sg)]
             except Exception as e:
