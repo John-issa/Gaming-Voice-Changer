@@ -1,5 +1,5 @@
 {
-  "label": "ex02 reference - original tuned setup (~3 s delay), keep as is",
+  "label": "ex02 reference - original tuned setup (Sample length 0.75), keep as is",
   "voice": "ex02",
   "locked": true,
   "settings": {

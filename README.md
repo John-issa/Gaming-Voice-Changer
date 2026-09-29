@@ -39,7 +39,7 @@ The setup the project owner uses and currently prefers (last updated 2026-09-29)
 | | loudness factor | 0.75 |
 | | pitch detection algorithm | rmvpe |
 | | Response threshold | -60 (gate off) |
-| | Sample length / Fade length / Extra inference time | 0.25 / 0.15 / 4.0 (about 1.4 s delay) |
+| | Sample length / Fade length / Extra inference time | 0.25 / 0.15 / 4.0 (about 0.6 s delay, estimated) |
 | | Input / Output noise reduction | off |
 | | Device type / sample rate | Windows WASAPI (not exclusive) / Use device sample rate |
 | | Input → Output device | Microphone (Chat-Audeze Maxwell) → CABLE Input (VB-Audio Virtual Cable) |
@@ -47,7 +47,7 @@ The setup the project owner uses and currently prefers (last updated 2026-09-29)
 | Overwatch | Voice chat devices / mode | Default Devices / Open Mic; cap the frame rate below the refresh rate |
 | NVIDIA Control Panel | Power management mode for `engine\runtime\python.exe` | Prefer maximum performance |
 
-The presets already hold all the RVC-window values: `launch.bat` applies them, so there's nothing to set by hand in that window. **Reference point:** `ex02-reference` (in the Voice list, or `launch.bat -Preset ex02-reference`) keeps the original tuned setup unchanged, with Sample length 0.75 and about 3 s of delay, so you can always compare against it. It's locked: **Save settings** never writes to it (the status shows `Reference is locked`).
+The presets already hold all the RVC-window values: `launch.bat` applies them, so there's nothing to set by hand in that window. **Reference point:** `ex02-reference` (in the Voice list, or `launch.bat -Preset ex02-reference`) keeps the original tuned setup unchanged, with Sample length 0.75 and about 1.1 s of delay (estimated), so you can always compare against it. It's locked: **Save settings** never writes to it (the status shows `Reference is locked`).
 
 `ex02` isn't downloadable. Without a backup of `models\ex02`, use `vctk-p231` with the same RVC-window values, or rebuild `ex02` ([docs/custom-voice.md](docs/custom-voice.md)).
 
@@ -88,7 +88,7 @@ The add-on puts a row at the bottom of the RVC window:
 - **Mute cable:** silence on the cable, also on Ctrl+Alt+M ([The hotkeys](#the-hotkeys)).
 - **Status text:** what the last action did, for example `Saved`, `No changes`, `Save failed` (with a beep), `Reference is locked`, `Muted` or `ex02 ready`.
 
-Changes made in the window last only if you click **Save settings**; otherwise every launch re-applies `config/audio.json` and the preset ([Keep your changes](docs/tuning.md#keep-your-changes)). Some controls apply live and others restart the stream ([docs/tuning.md](docs/tuning.md#starting-values)). At the defaults (Sample length 0.25) the game hears you about 1.4 seconds after you speak; `ex02-reference` keeps the original 0.75 (about 3 s) for comparison ([why, and how to shorten it](docs/tuning.md#what-to-expect-from-the-delay)).
+Changes made in the window last only if you click **Save settings**; otherwise every launch re-applies `config/audio.json` and the preset ([Keep your changes](docs/tuning.md#keep-your-changes)). Some controls apply live and others restart the stream ([docs/tuning.md](docs/tuning.md#starting-values)). At the defaults (Sample length 0.25) the game hears you roughly 0.6 seconds after you speak; `ex02-reference` keeps the original 0.75 (roughly 1.1 s) for comparison. Both are estimates until measured on the real chain ([why, and how to shorten it](docs/tuning.md#what-to-expect-from-the-delay)).
 
 Other `launch.bat` options: `-ListPresets`, `-ListDevices`, `-NoCudaGraph` (turns CUDA Graph off for one run; [docs/tuning.md](docs/tuning.md#cuda-graph-and--nocudagraph)) and `-Log <file>` (also appends the console output to that file).
 
@@ -104,7 +104,7 @@ Two global hotkeys work while the voice changer runs. Neither restarts anything.
 | Output converted voice (selected at start) | `vc` | Your converted voice | `Speech On.wav` | `[hotkey] voice changer ON (vc)` |
 | Input voice monitor | `im` | Your raw mic, still passed through the engine and the cable. It is not a mute. | `Speech Off.wav` | `[hotkey] voice changer OFF (im: raw mic)` |
 
-**Mute cable** puts true silence on the cable in either mode while the engine keeps running. Nothing you say after pressing it reaches the game, not even right after you unmute (in exchange, up to one Sample length just after unmuting can be lost). Speech from a few seconds before you press it can still come out: the converted voice is about 1.4 s late anyway (about 3 s with `ex02-reference`) ([delay](docs/tuning.md#what-to-expect-from-the-delay)). The cues are `Speech Sleep.wav` (muted) and `Windows Notify System Generic.wav` (unmuted), and the console prints `[mute] cable muted: silence on the output` or `[mute] cable unmuted`. Pressing Ctrl+Alt+V while muted replays the mute cue as a reminder. Every launch starts unmuted.
+**Mute cable** puts true silence on the cable in either mode while the engine keeps running. Nothing you say after pressing it reaches the game, not even right after you unmute (in exchange, up to one Sample length just after unmuting can be lost). Speech from a few seconds before you press it can still come out: the converted voice arrives late anyway (roughly 0.6 s, or 1.1 s with `ex02-reference`) ([delay](docs/tuning.md#what-to-expect-from-the-delay)). The cues are `Speech Sleep.wav` (muted) and `Windows Notify System Generic.wav` (unmuted), and the console prints `[mute] cable muted: silence on the output` or `[mute] cable unmuted`. Pressing Ctrl+Alt+V while muted replays the mute cue as a reminder. Every launch starts unmuted.
 
 - The cue sounds (from `C:\Windows\Media\`) play on the default playback device, your headset. Teammates don't hear them unless CABLE Input has become the default playback device.
 - The hotkeys only listen and never send keys to the game. With the default method, Windows reserves the combos while the voice changer runs, so the game and other apps don't see them.
