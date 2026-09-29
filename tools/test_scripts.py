@@ -448,6 +448,63 @@ class BuildFullIndexTest(unittest.TestCase):
                      "print(ix.ntotal, ivf.nlist, ivf.nprobe)\n")
             out = subprocess.run([ENGINE_PY, "-I", "-c", check, path], capture_output=True, text=True, timeout=120)
             self.assertEqual(out.stdout.split(), ["5000", "128", "4"], out.stderr)
+            self.assertFalse(os.path.exists(path + ".tmp"))
+            self.assertIn("read back OK", p.stdout)
+            p = subprocess.run([ENGINE_PY, "-I", os.path.join(REPO, "tools", "build_full_index.py"), "exp",
+                                "--engine", engine, "--check"], capture_output=True, text=True, timeout=300)
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)       # the shuffled index vs the unshuffled features
+            self.assertIn("OK, all 5000 vectors", p.stdout)
+
+    def test_read_back_catches_a_crash_zeroed_file_and_lost_ids(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code = ("import os, sys, faiss, numpy as np\n"
+                    "sys.path.insert(0, sys.argv[1]); import build_full_index as b\n"
+                    "x = np.random.default_rng(1).standard_normal((3000, 768), dtype=np.float32)\n"
+                    "def make(path, ids=None):\n"
+                    "    ix = faiss.index_factory(768, 'IVF64,Flat'); ix.train(x)\n"
+                    "    ix.add(x) if ids is None else ix.add_with_ids(x, ids)\n"
+                    "    faiss.extract_index_ivf(ix).nprobe = 4; faiss.write_index(ix, path)\n"
+                    "path = os.path.join(sys.argv[2], 'a.index'); make(path)\n"
+                    "print('good', b.check_index(path, x[::-1].copy(), 4))\n"  # any order
+                    "size = os.path.getsize(path)\n"
+                    "with open(path, 'r+b') as f:\n"
+                    "    f.seek(size // 5); f.write(bytes(size - size // 5))\n"  # zeros to the end, as after the crash
+                    "print('zeroed', b.check_index(path, x, 4))\n"
+                    "make(path, np.zeros(3000, dtype='int64'))\n"                # vectors intact, ids lost
+                    "print('ids', b.check_index(path, x, 4))\n")
+            p = subprocess.run([ENGINE_PY, "-I", "-c", code, os.path.join(REPO, "tools"), tmp],
+                               capture_output=True, text=True, timeout=300)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            lines = dict(line.split(" ", 1) for line in p.stdout.strip().splitlines())
+            self.assertEqual(lines["good"], "[]")
+            for case in ("zeroed", "ids"):
+                self.assertIn("ids with no stored vector", lines[case])
+                self.assertIn("find themselves", lines[case])
+
+    def test_failed_check_keeps_the_old_index_and_removes_the_tmp(self):
+        with tempfile.TemporaryDirectory() as engine:
+            features = os.path.join(engine, "logs", "exp", "3_feature768")
+            os.makedirs(features)
+            code = ("import os, sys, numpy as np\n"
+                    "sys.path.insert(0, sys.argv[1]); import build_full_index as b\n"
+                    "engine = sys.argv[2]\n"
+                    "np.save(os.path.join(engine, 'logs', 'exp', '3_feature768', '0_0.npy'),\n"
+                    "        np.random.default_rng(1).standard_normal((5000, 768), dtype=np.float32))\n"
+                    "old = b.index_path(engine, 'exp', 128, 4)\n"
+                    "open(old, 'wb').write(b'previous index')\n"
+                    "b.check_index = lambda *a: ['forced failure']\n"
+                    "try:\n"
+                    "    b.build(engine, 'exp', 4, 1)\n"
+                    "except SystemExit as e:\n"
+                    "    print('exit', e)\n"
+                    "print('old', open(old, 'rb').read() == b'previous index')\n"
+                    "print('tmp', os.path.exists(old + '.tmp'))\n")
+            p = subprocess.run([ENGINE_PY, "-I", "-c", code, os.path.join(REPO, "tools"), engine],
+                               capture_output=True, text=True, timeout=300)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            self.assertIn("forced failure", p.stdout)
+            self.assertIn("old True", p.stdout)
+            self.assertIn("tmp False", p.stdout)
 
 
 class StaticChecksTest(unittest.TestCase):

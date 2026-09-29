@@ -12,8 +12,9 @@ Timing: like realtime_gui.py it pins OMP_NUM_THREADS=4. Use --realtime (one bloc
 for live-like inference times: back to back the GPU stays clocked up and blocks run ~5x faster than
 live. Measured on the RTX 4080 SUPER: paced p50 ~110 ms, max ~155 ms per 0.25 s block, unchanged by
 CPU thread count or background CPU load. The audio output doesn't depend on pacing.
-Writes out.wav (mono, device rate) and out.json: settings, per-block inference seconds, SOLA
-offsets and the gain the rms mix applied (max per block), plus a summary.
+Writes out.wav (mono, device rate) and out.json: settings, the model and index file names (and the
+number of vectors the engine loaded from the index), per-block inference seconds, SOLA offsets and
+the gain the rms mix applied (max per block), plus a summary.
 """
 
 import argparse
@@ -267,7 +268,9 @@ def main(argv=None):
             time.sleep(max(0.0, next_due - time.perf_counter()))
     sf.write(out, np.concatenate(chunks), args.samplerate, subtype="FLOAT")
     result = {"input": inp, "settings": {k: v for k, v in cfg.items() if k not in ("pth_path", "index_path")},
-              "model": os.path.basename(cfg["pth_path"]), "cuda_graph": not args.no_cuda_graph,
+              "model": os.path.basename(cfg["pth_path"]), "index": os.path.basename(cfg["index_path"]) if os.path.isfile(cfg["index_path"]) else None,
+              "index_vectors": r.rvc.index.ntotal if hasattr(r.rvc, "index") else None,  # None: not loaded
+              "cuda_graph": not args.no_cuda_graph,
               "realtime_pacing": args.realtime,
               "block_frame": n, "samplerate": args.samplerate,
               "summary": summarize(blocks, cfg["block_time"]), "blocks": blocks}
