@@ -87,6 +87,12 @@ The orchestrator is the session "Real-time voice changer for gaming", and Worker
 | T16 | Train `ears-p105` (male, the user's own range, ~0 st) | Same flow |
 | T17 | After each pick: full index, final preset (`config/presets/ears-p033.json`, `ears-p105.json`), shown in the in-app Voice list; clean the training files | Back up `models\` afterwards |
 
+**Future (after the voices are settled)**
+
+| # | Task | Notes |
+|---|---|---|
+| T18 | A nicer, more modern GUI around the engine: voice picker, clear Converted / Original / Muted modes, one Start/Stop with visible status, level meters and a hear-myself toggle, advanced settings collapsed | Not started; the user wants this once the voice is nailed. Add-on/front end only, no engine edits |
+
 ### T1 — `vcgui/hotkey_launcher.py` (acceptance)
 - Runs with `engine\runtime\python.exe -I vcgui\hotkey_launcher.py --engine <dir> --preset <id>`.
 - Uses the stdlib plus the engine's own `sounddevice` / `FreeSimpleGUI` only.
